@@ -155,7 +155,7 @@ size_t message_serialize(uint8_t *buffer, size_t length, const message_t *messag
 
 void message_print(const message_t *message)
 {
-  printf("<Message tlvs(%lu)=[", message->length);
+  printf("<Message tlvs(%u)=[", (unsigned int) message->length);
   for (size_t i = 0; i < message->length; i++) {
     uint8_t *data = message->tlv[i].value;
     size_t data_length = message->tlv[i].length;
