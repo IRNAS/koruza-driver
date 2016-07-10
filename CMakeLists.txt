@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 project(koruza-driver C)
 add_definitions(-Os -Wall -Werror --std=gnu99 -Wmissing-declarations -g3)
 
-set(SOURCES
-main.c
+set(COMMON_SOURCES
 message.c
 crc32.c
 )
@@ -12,10 +11,18 @@ crc32.c
 set(LIBS
 )
 
-add_executable(koruza-driver ${SOURCES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(koruza-driver ${COMMON_SOURCES} main.c)
 target_link_libraries(koruza-driver ${LIBS})
 
 install(TARGETS koruza-driver
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
 )
+
+# Unit tests.
+enable_testing()
+
+add_executable(test_tlv ${COMMON_SOURCES} tests/test_tlv.c)
+target_link_libraries(test_tlv ${LIBS})
+add_test(test_tlv test_tlv)
