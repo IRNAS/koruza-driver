@@ -30,16 +30,30 @@
  */
 typedef enum {
   TLV_COMMAND = 1,
-  TLV_SENSOR_READING = 2,
-  TLV_CHECKSUM = 3
+  TLV_CHECKSUM = 2,
+  TLV_MOTOR_POSITION = 3,
+  TLV_CURRENT_READING = 4,
 } tlv_type_t;
 
 /**
  * Commands supported by the command TLV.
  */
 typedef enum {
-  COMMAND_GET_STATUS = 1
+  COMMAND_GET_STATUS = 1,
+  COMMAND_MOVE_MOTOR = 2,
+  COMMAND_SEND_IR = 3,
+  COMMAND_REBOOT = 4,
+  COMMAND_FIRMWARE_UPGRADE = 5,
 } tlv_command_t;
+
+/**
+ * Contents of the motor position TLV.
+ */
+typedef struct {
+  int32_t x;
+  int32_t y;
+  int32_t z;
+} tlv_motor_position_t;
 
 /**
  * Message operations result codes.
@@ -50,7 +64,8 @@ typedef enum {
   MESSAGE_ERROR_OUT_OF_MEMORY = -2,
   MESSAGE_ERROR_BUFFER_TOO_SMALL = -3,
   MESSAGE_ERROR_PARSE_ERROR = -4,
-  MESSAGE_ERROR_CHECKSUM_MISMATCH = -5
+  MESSAGE_ERROR_CHECKSUM_MISMATCH = -5,
+  MESSAGE_ERROR_TLV_NOT_FOUND = -6
 } message_result_t;
 
 /**
@@ -105,7 +120,7 @@ message_result_t message_parse(message_t *message, const uint8_t *data, size_t l
  * @param value TLV value
  * @return Operation result code
  */
-message_result_t message_tlv_add(message_t *message, uint8_t type, uint16_t length, uint8_t *value);
+message_result_t message_tlv_add(message_t *message, uint8_t type, uint16_t length, const uint8_t *value);
 
 /**
  * Adds a command TLV to a protocol message.
@@ -117,6 +132,24 @@ message_result_t message_tlv_add(message_t *message, uint8_t type, uint16_t leng
 message_result_t message_tlv_add_command(message_t *message, uint8_t command);
 
 /**
+ * Adds a motor position TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param position Motor position structure
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_motor_position(message_t *message, const tlv_motor_position_t *position);
+
+/**
+ * Adds a current reading TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param current Current reading
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_current_reading(message_t *message, uint16_t current);
+
+/**
  * Adds a checksum TLV to a protocol message. The checksum value is automatically
  * computed over all the TLVs currently contained in the message.
  *
@@ -124,6 +157,44 @@ message_result_t message_tlv_add_command(message_t *message, uint8_t command);
  * @return Operation result code
  */
 message_result_t message_tlv_add_checksum(message_t *message);
+
+/**
+ * Find the first TLV of a given type in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param type Type of TLV that should be returned
+ * @param destination Destination buffer
+ * @param length Length of the destination buffer
+ * @return Operation result code
+ */
+message_result_t message_tlv_get(message_t *message, uint8_t type, uint8_t *destination, size_t length);
+
+/**
+ * Find the first command TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param command Destination command variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_command(message_t *message, uint8_t *command);
+
+/**
+ * Find the first motor position TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param position Destination position variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_motor_position(message_t *message, tlv_motor_position_t *position);
+
+/**
+ * Find the first current reading TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param current Destination current variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *current);
 
 /**
  * Serializes a protocol message into a destination buffer.
