@@ -9,6 +9,9 @@ crc32.c
 )
 
 set(LIBS
+  ubox
+  ubus
+  uci
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

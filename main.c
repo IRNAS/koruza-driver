@@ -16,11 +16,79 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "message.h"
+#include <unistd.h>
+#include <libubox/uloop.h>
+#include <libubus.h>
+#include <uci.h>
+#include <signal.h>
+#include <syslog.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <stdlib.h>
 
-#include <stdio.h>
+// Global ubus connection context.
+static struct ubus_context *ubus;
+// Global UCI context.
+static struct uci_context *uci;
 
 int main(int argc, char **argv)
 {
+  struct stat s;
+  const char *ubus_socket = NULL;
+  int log_option = 0;
+  int c;
+
+  while ((c = getopt(argc, argv, "s:")) != -1) {
+    switch (c) {
+      case 's': ubus_socket = optarg; break;
+      case 'f': log_option |= LOG_PERROR; break;
+      default: break;
+    }
+  }
+
+  // Open the syslog facility.
+  openlog("koruza-driver", log_option, LOG_DAEMON);
+
+  // Create directory for temporary run files.
+  if (stat("/var/run/koruza-driver", &s))
+    mkdir("/var/run/koruza-driver", 0700);
+
+  umask(0077);
+
+  // Setup signal handlers.
+  signal(SIGPIPE, SIG_IGN);
+
+  // Initialize the event loop.
+  uloop_init();
+
+  // Attempt to establish connection to ubus daemon.
+  for (;;) {
+    ubus = ubus_connect(ubus_socket);
+    if (!ubus) {
+      syslog(LOG_WARNING, "Failed to connect to ubus!");
+      sleep(10);
+      continue;
+    }
+
+    break;
+  }
+
+  ubus_add_uloop(ubus);
+
+  // Initialize UCI context.
+  uci = uci_alloc_context();
+  if (!uci) {
+    syslog(LOG_ERR, "Failed to initialize UCI!");
+    return -1;
+  }
+
+  // TODO: Setup everything.
+
+  // Enter the event loop and cleanup after it exits.
+  uloop_run();
+  ubus_free(ubus);
+  uci_free_context(uci);
+  uloop_done();
+
   return 0;
 }
