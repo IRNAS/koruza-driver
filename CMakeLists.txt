@@ -8,6 +8,11 @@ message.c
 crc32.c
 )
 
+set(DAEMON_SOURCES
+serial.c
+main.c
+)
+
 set(LIBS
   ubox
   ubus
@@ -15,7 +20,7 @@ set(LIBS
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(koruza-driver ${COMMON_SOURCES} main.c)
+add_executable(koruza-driver ${COMMON_SOURCES} ${DAEMON_SOURCES})
 target_link_libraries(koruza-driver ${LIBS})
 
 install(TARGETS koruza-driver

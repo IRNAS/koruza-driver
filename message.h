@@ -202,9 +202,9 @@ message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *c
  * @param buffer Destination buffer
  * @param length Length of the destination buffer
  * @param message Message instance to serialize
- * @return Number of bytes written serialized to the buffer
+ * @return Number of bytes written serialized to the buffer or error code
  */
-size_t message_serialize(uint8_t *buffer, size_t length, const message_t *message);
+ssize_t message_serialize(uint8_t *buffer, size_t length, const message_t *message);
 
 /**
  * Prints a debug representation of a protocol message.

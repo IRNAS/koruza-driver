@@ -26,6 +26,8 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
+#include "serial.h"
+
 // Global ubus connection context.
 static struct ubus_context *ubus;
 // Global UCI context.
@@ -82,7 +84,10 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  // TODO: Setup everything.
+  if (serial_init(uci) != 0) {
+    syslog(LOG_ERR, "Failed to initialize serial device!");
+    return -1;
+  }
 
   // Enter the event loop and cleanup after it exits.
   uloop_run();

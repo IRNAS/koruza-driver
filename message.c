@@ -190,7 +190,7 @@ message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *c
   return MESSAGE_SUCCESS;
 }
 
-size_t message_serialize(uint8_t *buffer, size_t length, const message_t *message)
+ssize_t message_serialize(uint8_t *buffer, size_t length, const message_t *message)
 {
   size_t offset = 0;
   size_t remaining_buffer = length;
