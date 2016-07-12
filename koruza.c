@@ -36,6 +36,9 @@ int koruza_init(struct uci_context *uci)
 
 void koruza_serial_message_handler(const message_t *message)
 {
+  // TODO: Remove this debug print.
+  message_print(message);
+
   // Check if this is a reply message.
   tlv_reply_t reply;
   if (message_tlv_get_reply(message, &reply) != MESSAGE_SUCCESS) {
