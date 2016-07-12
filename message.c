@@ -146,7 +146,7 @@ message_result_t message_tlv_add_checksum(message_t *message)
   return message_tlv_add(message, TLV_CHECKSUM, sizeof(uint32_t), (uint8_t*) &checksum);
 }
 
-message_result_t message_tlv_get(message_t *message, uint8_t type, uint8_t *destination, size_t length)
+message_result_t message_tlv_get(const message_t *message, uint8_t type, uint8_t *destination, size_t length)
 {
   for (size_t i = 0; i < message->length; i++) {
     if (message->tlv[i].type == type) {
@@ -159,12 +159,12 @@ message_result_t message_tlv_get(message_t *message, uint8_t type, uint8_t *dest
   return MESSAGE_ERROR_TLV_NOT_FOUND;
 }
 
-message_result_t message_tlv_get_command(message_t *message, uint8_t *command)
+message_result_t message_tlv_get_command(const message_t *message, uint8_t *command)
 {
   return message_tlv_get(message, TLV_COMMAND, command, sizeof(uint8_t));
 }
 
-message_result_t message_tlv_get_motor_position(message_t *message, tlv_motor_position_t *position)
+message_result_t message_tlv_get_motor_position(const message_t *message, tlv_motor_position_t *position)
 {
   message_result_t result = message_tlv_get(message, TLV_MOTOR_POSITION, (uint8_t*) position, sizeof(tlv_motor_position_t));
   if (result != MESSAGE_SUCCESS) {
@@ -178,7 +178,7 @@ message_result_t message_tlv_get_motor_position(message_t *message, tlv_motor_po
   return MESSAGE_SUCCESS;
 }
 
-message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *current)
+message_result_t message_tlv_get_current_reading(const message_t *message, uint16_t *current)
 {
   message_result_t result = message_tlv_get(message, TLV_CURRENT_READING, (uint8_t*) current, sizeof(uint16_t));
   if (result != MESSAGE_SUCCESS) {
@@ -188,6 +188,16 @@ message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *c
   *current = ntohs(*current);
 
   return MESSAGE_SUCCESS;
+}
+
+size_t message_serialized_size(const message_t *message)
+{
+  size_t size = 0;
+  for (size_t i = 0; i < message->length; i++) {
+    size += sizeof(uint8_t) + sizeof(uint16_t) + message->tlv[i].length;
+  }
+
+  return size;
 }
 
 ssize_t message_serialize(uint8_t *buffer, size_t length, const message_t *message)

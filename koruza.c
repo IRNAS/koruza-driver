@@ -24,7 +24,7 @@
 // Status of the connected KORUZA unit.
 static struct koruza_status status;
 
-void koruza_serial_message_handler(message_t *message);
+void koruza_serial_message_handler(const message_t *message);
 
 int koruza_init(struct uci_context *uci)
 {
@@ -34,7 +34,7 @@ int koruza_init(struct uci_context *uci)
   return koruza_update_status();
 }
 
-void koruza_serial_message_handler(message_t *message)
+void koruza_serial_message_handler(const message_t *message)
 {
   // TODO: Handle incoming message.
 }

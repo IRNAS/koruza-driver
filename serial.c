@@ -25,11 +25,12 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 // Serial device uloop file descriptor wrapper.
 static struct uloop_fd serial_ufd;
-// Message handler for incoming messages.
-static serial_message_handler message_handler = NULL;
+// Frame parser.
+static parser_t parser;
 
 int serial_init_device(const char *device);
 void serial_fd_handler(struct uloop_fd *ufd, unsigned int events);
@@ -37,14 +38,15 @@ void serial_fd_handler(struct uloop_fd *ufd, unsigned int events);
 int serial_init(struct uci_context *uci)
 {
   serial_ufd.fd = -1;
+  frame_parser_init(&parser);
 
   // TODO: Read device from UCI configuration.
   return serial_init_device("/dev/ttyS1");
 }
 
-void serial_set_message_handler(serial_message_handler handler)
+void serial_set_message_handler(frame_message_handler handler)
 {
-  message_handler = handler;
+  parser.handler = handler;
 }
 
 int serial_init_device(const char *device)
@@ -64,30 +66,39 @@ int serial_init_device(const char *device)
 
 void serial_fd_handler(struct uloop_fd *ufd, unsigned int events)
 {
-  // TODO
+  (void) ufd;
+
+  uint8_t buffer[1024];
+  ssize_t size = read(serial_ufd.fd, buffer, sizeof(buffer));
+  if (size < 0) {
+    syslog(LOG_ERR, "Failed to read from serial device.");
+    return;
+  }
+
+  frame_parser_push_buffer(&parser, buffer, size);
 }
 
-int serial_send_message(message_t *message)
+int serial_send_message(const message_t *message)
 {
   if (serial_ufd.fd < 0) {
     return -1;
   }
 
-  uint8_t buffer[65536];
-  ssize_t size = message_serialize(buffer, sizeof(buffer), message);
+  static uint8_t buffer[FRAME_MAX_LENGTH];
+  ssize_t size = frame_message(buffer, sizeof(buffer), message);
   if (size < 0) {
     return -1;
   }
 
-  uint16_t frame_size = htons((uint16_t) size);
-  if (write(serial_ufd.fd, &frame_size, sizeof(frame_size)) < 0) {
-    syslog(LOG_ERR, "Failed to write frame size to serial device.");
-    return -1;
-  }
+  size_t offset = 0;
+  while (offset < size) {
+    ssize_t written = write(serial_ufd.fd, &buffer[offset], size - offset);
+    if (written < 0) {
+      syslog(LOG_ERR, "Failed to write frame (%d bytes) to serial device.", size);
+      return -1;
+    }
 
-  if (write(serial_ufd.fd, buffer, frame_size) < 0) {
-    syslog(LOG_ERR, "Failed to write frame payload (%d bytes) to serial device.", size);
-    return -1;
+    offset += written;
   }
 
   return 0;

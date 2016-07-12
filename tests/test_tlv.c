@@ -72,6 +72,15 @@ int main()
     parsed_position.x, parsed_position.y, parsed_position.z
   );
 
+  if (parsed_command != COMMAND_MOVE_MOTOR ||
+      parsed_position.x != position.x ||
+      parsed_position.y != position.y ||
+      parsed_position.z != position.z) {
+    printf("Parsed values are invalid.\n");
+    message_free(&msg);
+    return -1;
+  }
+
   message_free(&msg);
 
   return 0;

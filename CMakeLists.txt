@@ -5,6 +5,7 @@ add_definitions(-Os -Wall -Werror --std=gnu99 -Wmissing-declarations -g3)
 
 set(COMMON_SOURCES
 message.c
+frame.c
 crc32.c
 )
 
@@ -16,23 +17,28 @@ main.c
 )
 
 set(LIBS
-  ubox
-  ubus
-  uci
+ubox
+ubus
+uci
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(koruza-driver ${COMMON_SOURCES} ${DAEMON_SOURCES})
-target_link_libraries(koruza-driver ${LIBS})
 
-install(TARGETS koruza-driver
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-)
+if(NOT ONLY_TESTS)
+  add_executable(koruza-driver ${COMMON_SOURCES} ${DAEMON_SOURCES})
+  target_link_libraries(koruza-driver ${LIBS})
+
+  install(TARGETS koruza-driver
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+  )
+endif(NOT ONLY_TESTS)
 
 # Unit tests.
 enable_testing()
 
 add_executable(test_tlv ${COMMON_SOURCES} tests/test_tlv.c)
-target_link_libraries(test_tlv ${LIBS})
 add_test(test_tlv test_tlv)
+
+add_executable(test_frame ${COMMON_SOURCES} tests/test_frame.c)
+add_test(test_frame test_frame)

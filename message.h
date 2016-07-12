@@ -167,7 +167,7 @@ message_result_t message_tlv_add_checksum(message_t *message);
  * @param length Length of the destination buffer
  * @return Operation result code
  */
-message_result_t message_tlv_get(message_t *message, uint8_t type, uint8_t *destination, size_t length);
+message_result_t message_tlv_get(const message_t *message, uint8_t type, uint8_t *destination, size_t length);
 
 /**
  * Find the first command TLV in a message and copies it.
@@ -176,7 +176,7 @@ message_result_t message_tlv_get(message_t *message, uint8_t type, uint8_t *dest
  * @param command Destination command variable
  * @return Operation result code
  */
-message_result_t message_tlv_get_command(message_t *message, uint8_t *command);
+message_result_t message_tlv_get_command(const message_t *message, uint8_t *command);
 
 /**
  * Find the first motor position TLV in a message and copies it.
@@ -185,7 +185,7 @@ message_result_t message_tlv_get_command(message_t *message, uint8_t *command);
  * @param position Destination position variable
  * @return Operation result code
  */
-message_result_t message_tlv_get_motor_position(message_t *message, tlv_motor_position_t *position);
+message_result_t message_tlv_get_motor_position(const message_t *message, tlv_motor_position_t *position);
 
 /**
  * Find the first current reading TLV in a message and copies it.
@@ -194,7 +194,14 @@ message_result_t message_tlv_get_motor_position(message_t *message, tlv_motor_po
  * @param current Destination current variable
  * @return Operation result code
  */
-message_result_t message_tlv_get_current_reading(message_t *message, uint16_t *current);
+message_result_t message_tlv_get_current_reading(const message_t *message, uint16_t *current);
+
+/**
+ * Returns the size a message would take in its serialized form.
+ *
+ * @param message Message instance to calculate the size for
+ */
+size_t message_serialized_size(const message_t *message);
 
 /**
  * Serializes a protocol message into a destination buffer.

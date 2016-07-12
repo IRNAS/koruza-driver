@@ -22,14 +22,10 @@
 #include <uci.h>
 
 #include "message.h"
-
-/**
- * Handler for messages received via the serial interface.
- */
-typedef void (*serial_message_handler)(message_t *message);
+#include "frame.h"
 
 int serial_init(struct uci_context *uci);
-int serial_send_message(message_t *message);
-void serial_set_message_handler(serial_message_handler handler);
+int serial_send_message(const message_t *message);
+void serial_set_message_handler(frame_message_handler handler);
 
 #endif
