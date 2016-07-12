@@ -1,5 +1,5 @@
 /*
- * koruza-driver - SFP driver
+ * koruza-driver - KORUZA driver
  *
  * Copyright (C) 2016 Jernej Kos <jernej@kos.mx>
  *
