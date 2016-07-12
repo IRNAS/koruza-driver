@@ -36,7 +36,19 @@ int koruza_init(struct uci_context *uci)
 
 void koruza_serial_message_handler(const message_t *message)
 {
-  // TODO: Handle incoming message.
+  // Check if this is a reply message.
+  tlv_reply_t reply;
+  if (message_tlv_get_reply(message, &reply) != MESSAGE_SUCCESS) {
+    return;
+  }
+
+  switch (reply) {
+    case REPLY_STATUS_REPORT: {
+      status.connected = 1;
+      // TODO: Handle status report.
+      break;
+    }
+  }
 }
 
 int koruza_move_motor(int32_t x, int32_t y, int32_t z)
@@ -50,5 +62,12 @@ int koruza_move_motor(int32_t x, int32_t y, int32_t z)
 
 int koruza_update_status()
 {
+  message_t msg;
+  message_init(&msg);
+  message_tlv_add_command(&msg, COMMAND_GET_STATUS);
+  message_tlv_add_checksum(&msg);
+  serial_send_message(&msg);
+  message_free(&msg);
+
   return 0;
 }

@@ -30,9 +30,10 @@
  */
 typedef enum {
   TLV_COMMAND = 1,
-  TLV_CHECKSUM = 2,
-  TLV_MOTOR_POSITION = 3,
-  TLV_CURRENT_READING = 4,
+  TLV_REPLY = 2,
+  TLV_CHECKSUM = 3,
+  TLV_MOTOR_POSITION = 4,
+  TLV_CURRENT_READING = 5,
 } tlv_type_t;
 
 /**
@@ -45,6 +46,13 @@ typedef enum {
   COMMAND_REBOOT = 4,
   COMMAND_FIRMWARE_UPGRADE = 5,
 } tlv_command_t;
+
+/**
+ * Replies supported by the reply TLV.
+ */
+typedef enum {
+  REPLY_STATUS_REPORT = 1
+} tlv_reply_t;
 
 /**
  * Contents of the motor position TLV.
@@ -129,7 +137,16 @@ message_result_t message_tlv_add(message_t *message, uint8_t type, uint16_t leng
  * @param command Command argument
  * @return Operation result code
  */
-message_result_t message_tlv_add_command(message_t *message, uint8_t command);
+message_result_t message_tlv_add_command(message_t *message, tlv_command_t command);
+
+/**
+ * Adds a reply TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param reply Reply argument
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_reply(message_t *message, tlv_reply_t reply);
 
 /**
  * Adds a motor position TLV to a protocol message.
@@ -176,7 +193,16 @@ message_result_t message_tlv_get(const message_t *message, uint8_t type, uint8_t
  * @param command Destination command variable
  * @return Operation result code
  */
-message_result_t message_tlv_get_command(const message_t *message, uint8_t *command);
+message_result_t message_tlv_get_command(const message_t *message, tlv_command_t *command);
+
+/**
+ * Find the first reply TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param reply Destination reply variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_reply(const message_t *message, tlv_reply_t *reply);
 
 /**
  * Find the first motor position TLV in a message and copies it.

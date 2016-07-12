@@ -53,7 +53,7 @@ int main()
     return -1;
   }
 
-  uint8_t parsed_command;
+  tlv_command_t parsed_command;
   tlv_motor_position_t parsed_position;
   if (message_tlv_get_command(&msg, &parsed_command) != MESSAGE_SUCCESS) {
     printf("Failed to get command TLV.\n");
