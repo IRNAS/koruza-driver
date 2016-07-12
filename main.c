@@ -27,6 +27,8 @@
 #include <stdlib.h>
 
 #include "serial.h"
+#include "koruza.h"
+#include "ubus.h"
 
 // Global ubus connection context.
 static struct ubus_context *ubus;
@@ -86,6 +88,16 @@ int main(int argc, char **argv)
 
   if (serial_init(uci) != 0) {
     syslog(LOG_ERR, "Failed to initialize serial device!");
+    return -1;
+  }
+
+  if (koruza_init(uci) != 0) {
+    syslog(LOG_ERR, "Failed to initialize KORUZA controller board!");
+    return -1;
+  }
+
+  if (ubus_init(ubus) != 0) {
+    syslog(LOG_ERR, "Failed to initialize ubus!");
     return -1;
   }
 

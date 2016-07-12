@@ -28,6 +28,8 @@
 
 // Serial device uloop file descriptor wrapper.
 static struct uloop_fd serial_ufd;
+// Message handler for incoming messages.
+static serial_message_handler message_handler = NULL;
 
 int serial_init_device(const char *device);
 void serial_fd_handler(struct uloop_fd *ufd, unsigned int events);
@@ -38,6 +40,11 @@ int serial_init(struct uci_context *uci)
 
   // TODO: Read device from UCI configuration.
   return serial_init_device("/dev/ttyS1");
+}
+
+void serial_set_message_handler(serial_message_handler handler)
+{
+  message_handler = handler;
 }
 
 int serial_init_device(const char *device)

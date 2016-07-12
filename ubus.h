@@ -1,5 +1,5 @@
 /*
- * koruza-driver - KORUZA driver
+ * koruza-driver - SFP driver
  *
  * Copyright (C) 2016 Jernej Kos <jernej@kos.mx>
  *
@@ -16,20 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef KORUZA_DRIVER_SERIAL_H
-#define KORUZA_DRIVER_SERIAL_H
+#ifndef KORUZA_DRIVER_UBUS_H
+#define KORUZA_DRIVER_UBUS_H
 
-#include <uci.h>
+#include <libubus.h>
 
-#include "message.h"
-
-/**
- * Handler for messages received via the serial interface.
- */
-typedef void (*serial_message_handler)(message_t *message);
-
-int serial_init(struct uci_context *uci);
-int serial_send_message(message_t *message);
-void serial_set_message_handler(serial_message_handler handler);
+int ubus_init(struct ubus_context *ubus);
 
 #endif

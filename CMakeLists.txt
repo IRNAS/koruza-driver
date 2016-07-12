@@ -10,6 +10,8 @@ crc32.c
 
 set(DAEMON_SOURCES
 serial.c
+koruza.c
+ubus.c
 main.c
 )
 

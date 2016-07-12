@@ -16,20 +16,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef KORUZA_DRIVER_SERIAL_H
-#define KORUZA_DRIVER_SERIAL_H
+#include "koruza.h"
+#include "serial.h"
 
-#include <uci.h>
+#include <string.h>
 
-#include "message.h"
+// Status of the connected KORUZA unit.
+static struct koruza_status status;
 
-/**
- * Handler for messages received via the serial interface.
- */
-typedef void (*serial_message_handler)(message_t *message);
+void koruza_serial_message_handler(message_t *message);
 
-int serial_init(struct uci_context *uci);
-int serial_send_message(message_t *message);
-void serial_set_message_handler(serial_message_handler handler);
+int koruza_init(struct uci_context *uci)
+{
+  memset(&status, 0, sizeof(struct koruza_status));
+  serial_set_message_handler(koruza_serial_message_handler);
 
-#endif
+  return koruza_update_status();
+}
+
+void koruza_serial_message_handler(message_t *message)
+{
+  // TODO: Handle incoming message.
+}
+
+int koruza_move_motor(int32_t x, int32_t y, int32_t z)
+{
+  if (!status.connected) {
+    return -1;
+  }
+
+  return 0;
+}
+
+int koruza_update_status()
+{
+  return 0;
+}
