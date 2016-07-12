@@ -26,6 +26,8 @@
 #include <syslog.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 // Serial device uloop file descriptor wrapper.
 static struct uloop_fd serial_ufd;
@@ -94,7 +96,8 @@ int serial_send_message(const message_t *message)
   while (offset < size) {
     ssize_t written = write(serial_ufd.fd, &buffer[offset], size - offset);
     if (written < 0) {
-      syslog(LOG_ERR, "Failed to write frame (%d bytes) to serial device.", size);
+      syslog(LOG_ERR, "Failed to write frame (%d bytes) to serial device: %s (%d)",
+        size, strerror(errno), errno);
       return -1;
     }
 
