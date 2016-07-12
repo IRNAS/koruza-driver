@@ -26,6 +26,7 @@
 #include <syslog.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <termios.h>
 #include <string.h>
 #include <errno.h>
 
@@ -56,6 +57,25 @@ int serial_init_device(const char *device)
   serial_ufd.fd = open(device, O_RDWR);
   if (serial_ufd.fd < 0) {
     syslog(LOG_ERR, "Failed to open serial device '%s'.", device);
+    return -1;
+  }
+
+  struct termios serial_tio;
+  if (tcgetattr(serial_ufd.fd, &serial_tio) < 0) {
+    syslog(LOG_ERR, "Failed to get configuration for serial device '%s': %s (%d)",
+      device, strerror(errno), errno);
+    close(serial_ufd.fd);
+    return -1;
+  }
+
+  cfmakeraw(&serial_tio);
+  cfsetispeed(&serial_tio, B115200);
+  cfsetospeed(&serial_tio, B115200);
+
+  if (tcsetattr(serial_ufd.fd, TCSAFLUSH, &serial_tio) < 0) {
+    syslog(LOG_ERR, "Failed to configure serial device '%s': %s (%d)",
+      device, strerror(errno), errno);
+    close(serial_ufd.fd);
     return -1;
   }
 
