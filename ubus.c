@@ -63,9 +63,21 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
                            struct ubus_request_data *req, const char *method,
                            struct blob_attr *msg)
 {
-  (void) reply_buf;
+  const struct koruza_status *status = koruza_get_status();
+  void *c;
 
-  return UBUS_STATUS_NOT_FOUND;
+  blob_buf_init(&reply_buf, 0);
+  blobmsg_add_u8(&reply_buf, "connected", status->connected);
+
+  c = blobmsg_open_table(&reply_buf, "motors");
+  blobmsg_add_u32(&reply_buf, "x", status->motors.x);
+  blobmsg_add_u32(&reply_buf, "y", status->motors.y);
+  blobmsg_add_u32(&reply_buf, "z", status->motors.z);
+  blobmsg_close_table(&reply_buf, c);
+
+  ubus_send_reply(ctx, req, reply_buf.head);
+
+  return UBUS_STATUS_OK;
 }
 
 static const struct ubus_method koruza_methods[] = {

@@ -36,5 +36,6 @@ struct koruza_status {
 int koruza_init(struct uci_context *uci);
 int koruza_move_motor(int32_t x, int32_t y, int32_t z);
 int koruza_update_status();
+const struct koruza_status *koruza_get_status();
 
 #endif
