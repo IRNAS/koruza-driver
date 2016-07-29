@@ -27,17 +27,21 @@
 static struct koruza_status status;
 // Timer for periodic status retrieval.
 struct uloop_timeout timer_status;
+// Timer for detection when MCU disconnects.
+struct uloop_timeout timer_wait_reply;
 
 void koruza_serial_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
+void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
 
 int koruza_init(struct uci_context *uci)
 {
   memset(&status, 0, sizeof(struct koruza_status));
   serial_set_message_handler(koruza_serial_message_handler);
 
-  // Setup status timer handler.
+  // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
+  timer_wait_reply.cb = koruza_timer_wait_reply_handler;
   // TODO: Make the period configurable via UCI.
   uloop_timeout_set(&timer_status, 10000);
 
@@ -62,6 +66,8 @@ void koruza_serial_message_handler(const message_t *message)
 
   switch (reply) {
     case REPLY_STATUS_REPORT: {
+      uloop_timeout_cancel(&timer_wait_reply);
+
       if (!status.connected) {
         // Was not considered connected until now.
         syslog(LOG_INFO, "Detected KORUZA MCU on the configured serial port.");
@@ -122,6 +128,17 @@ void koruza_timer_status_handler(struct uloop_timeout *timeout)
 
   koruza_update_status();
 
-  // TODO: Make the period configurable via UCI.
+  // TODO: Make the periods configurable via UCI.
   uloop_timeout_set(&timer_status, 10000);
+  uloop_timeout_set(&timer_wait_reply, 1000);
+}
+
+void koruza_timer_wait_reply_handler(struct uloop_timeout *timer)
+{
+  if (!status.connected) {
+    return;
+  }
+
+  syslog(LOG_WARNING, "KORUZA MCU has been disconnected.");
+  status.connected = 0;
 }
