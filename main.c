@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  if (koruza_init(uci) != 0) {
+  if (koruza_init(uci, ubus) != 0) {
     syslog(LOG_ERR, "Failed to initialize KORUZA controller board!");
     return -1;
   }

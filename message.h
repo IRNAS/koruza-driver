@@ -34,6 +34,7 @@ typedef enum {
   TLV_CHECKSUM = 3,
   TLV_MOTOR_POSITION = 4,
   TLV_CURRENT_READING = 5,
+  TLV_SFP_CALIBRATION = 6,
 } tlv_type_t;
 
 /**
@@ -62,6 +63,14 @@ typedef struct {
   int32_t y;
   int32_t z;
 } tlv_motor_position_t;
+
+/**
+ * Contents of the motor position TLV.
+ */
+typedef struct {
+  uint32_t offset_x;
+  uint32_t offset_y;
+} tlv_sfp_calibration_t;
 
 /**
  * Message operations result codes.
@@ -167,6 +176,15 @@ message_result_t message_tlv_add_motor_position(message_t *message, const tlv_mo
 message_result_t message_tlv_add_current_reading(message_t *message, uint16_t current);
 
 /**
+ * Adds a SFP calibration TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param position SFP calibration structure
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_sfp_calibration(message_t *message, const tlv_sfp_calibration_t *calibration);
+
+/**
  * Adds a checksum TLV to a protocol message. The checksum value is automatically
  * computed over all the TLVs currently contained in the message.
  *
@@ -221,6 +239,15 @@ message_result_t message_tlv_get_motor_position(const message_t *message, tlv_mo
  * @return Operation result code
  */
 message_result_t message_tlv_get_current_reading(const message_t *message, uint16_t *current);
+
+/**
+ * Find the first SFP calibration TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param calibration Destination calibration variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_sfp_calibration(const message_t *message, tlv_sfp_calibration_t *calibration);
 
 /**
  * Returns the size a message would take in its serialized form.

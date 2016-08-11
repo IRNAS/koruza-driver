@@ -147,6 +147,14 @@ message_result_t message_tlv_add_current_reading(message_t *message, uint16_t cu
   return message_tlv_add(message, TLV_CURRENT_READING, sizeof(uint16_t), (uint8_t*) &current);
 }
 
+message_result_t message_tlv_add_sfp_calibration(message_t *message, const tlv_sfp_calibration_t *calibration)
+{
+  tlv_sfp_calibration_t tmp;
+  tmp.offset_x = htonl(calibration->offset_x);
+  tmp.offset_y = htonl(calibration->offset_y);
+  return message_tlv_add(message, TLV_SFP_CALIBRATION, sizeof(tlv_sfp_calibration_t), (uint8_t*) &tmp);
+}
+
 message_result_t message_tlv_add_checksum(message_t *message)
 {
   uint32_t checksum = message_checksum(message);
@@ -214,6 +222,19 @@ message_result_t message_tlv_get_current_reading(const message_t *message, uint1
   }
 
   *current = ntohs(*current);
+
+  return MESSAGE_SUCCESS;
+}
+
+message_result_t message_tlv_get_sfp_calibration(const message_t *message, tlv_sfp_calibration_t *calibration)
+{
+  message_result_t result = message_tlv_get(message, TLV_SFP_CALIBRATION, (uint8_t*) calibration, sizeof(tlv_sfp_calibration_t));
+  if (result != MESSAGE_SUCCESS) {
+    return result;
+  }
+
+  calibration->offset_x = ntohl(calibration->offset_x);
+  calibration->offset_y = ntohl(calibration->offset_y);
 
   return MESSAGE_SUCCESS;
 }

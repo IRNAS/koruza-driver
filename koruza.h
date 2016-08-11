@@ -20,6 +20,7 @@
 #define KORUZA_DRIVER_KORUZA_H
 
 #include <uci.h>
+#include <libubus.h>
 
 struct koruza_motor_status {
   int32_t x;
@@ -27,13 +28,19 @@ struct koruza_motor_status {
   int32_t z;
 };
 
+struct koruza_camera_calibration {
+  uint32_t offset_x;
+  uint32_t offset_y;
+};
+
 struct koruza_status {
   uint8_t connected;
 
   struct koruza_motor_status motors;
+  struct koruza_camera_calibration camera_calibration;
 };
 
-int koruza_init(struct uci_context *uci);
+int koruza_init(struct uci_context *uci, struct ubus_context *ubus);
 int koruza_move_motor(int32_t x, int32_t y, int32_t z);
 int koruza_update_status();
 const struct koruza_status *koruza_get_status();

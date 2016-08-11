@@ -75,6 +75,11 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "z", status->motors.z);
   blobmsg_close_table(&reply_buf, c);
 
+  c = blobmsg_open_table(&reply_buf, "camera_calibration");
+  blobmsg_add_u32(&reply_buf, "offset_x", status->camera_calibration.offset_x);
+  blobmsg_add_u32(&reply_buf, "offset_y", status->camera_calibration.offset_y);
+  blobmsg_close_table(&reply_buf, c);
+
   ubus_send_reply(ctx, req, reply_buf.head);
 
   return UBUS_STATUS_OK;
