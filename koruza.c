@@ -188,8 +188,8 @@ static void koruza_sfp_get_calibration_data(struct ubus_request *req, int type, 
   size_t vendor_specific_length = blobmsg_data_len(tb[SFP_VENDOR_DATA]);
 
   // TODO: Remove this test data.
-  status.camera_calibration.offset_x = 200;
-  status.camera_calibration.offset_y = 200;
+  status.camera_calibration.offset_x = 640;
+  status.camera_calibration.offset_y = 360;
 
   // Assume the calibration data contains TLVs.
   message_t calibration_msg;
