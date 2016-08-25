@@ -1,0 +1,43 @@
+/*
+ * koruza-driver - KORUZA driver
+ *
+ * Copyright (C) 2016 Jernej Kos <jernej@kos.mx>
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#ifndef KORUZA_DRIVER_UCI_H
+#define KORUZA_DRIVER_UCI_H
+
+#include <uci.h>
+
+/**
+ * Returns a resolved UCI path as string. The caller is required to
+ * free the string after use.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ * @return Target string or NULL
+ */
+char *uci_get_string(struct uci_context *uci, const char *location);
+
+/**
+ * Returns a resolved UCI path as an integer.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ * @return Target integer
+ */
+int uci_get_int(struct uci_context *uci, const char *location);
+
+#endif

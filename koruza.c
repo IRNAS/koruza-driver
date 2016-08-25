@@ -18,6 +18,7 @@
  */
 #include "koruza.h"
 #include "serial.h"
+#include "configuration.h"
 
 #include <string.h>
 #include <syslog.h>
@@ -46,6 +47,10 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   memset(&status, 0, sizeof(struct koruza_status));
   serial_set_message_handler(koruza_serial_message_handler);
+
+  // Initialize calibration defaults.
+  status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x");
+  status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y");
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
@@ -186,10 +191,6 @@ static void koruza_sfp_get_calibration_data(struct ubus_request *req, int type, 
 
   uint8_t *vendor_specific = (uint8_t*) blobmsg_data(tb[SFP_VENDOR_DATA]);
   size_t vendor_specific_length = blobmsg_data_len(tb[SFP_VENDOR_DATA]);
-
-  // TODO: Remove this test data.
-  status.camera_calibration.offset_x = 640;
-  status.camera_calibration.offset_y = 360;
 
   // Assume the calibration data contains TLVs.
   message_t calibration_msg;

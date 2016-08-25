@@ -13,6 +13,7 @@ set(DAEMON_SOURCES
 serial.c
 koruza.c
 ubus.c
+configuration.c
 main.c
 )
 
