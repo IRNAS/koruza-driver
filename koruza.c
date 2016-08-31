@@ -49,6 +49,21 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   serial_set_message_handler(koruza_serial_message_handler);
 
   // Initialize calibration defaults.
+  status.camera_calibration.width = 1280;
+  status.camera_calibration.height = 720;
+
+  char *webcam_resolution = uci_get_string(uci, "mjpg-streamer.core.resolution");
+  if (webcam_resolution != NULL) {
+    sscanf(
+      webcam_resolution,
+      "%dx%d",
+      &status.camera_calibration.width,
+      &status.camera_calibration.height
+    );
+
+    free(webcam_resolution);
+  }
+
   status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x");
   status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y");
 
