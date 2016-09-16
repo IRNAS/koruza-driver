@@ -33,6 +33,7 @@ struct koruza_camera_calibration {
   uint32_t height;
   uint32_t offset_x;
   uint32_t offset_y;
+  uint32_t distance;
 };
 
 struct koruza_status {

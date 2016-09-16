@@ -80,6 +80,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "height", status->camera_calibration.height);
   blobmsg_add_u32(&reply_buf, "offset_x", status->camera_calibration.offset_x);
   blobmsg_add_u32(&reply_buf, "offset_y", status->camera_calibration.offset_y);
+  blobmsg_add_u32(&reply_buf, "distance", status->camera_calibration.distance);
   blobmsg_close_table(&reply_buf, c);
 
   ubus_send_reply(ctx, req, reply_buf.head);

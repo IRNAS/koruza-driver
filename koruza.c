@@ -66,6 +66,7 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x");
   status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y");
+  status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance");
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
