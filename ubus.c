@@ -73,6 +73,8 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "x", status->motors.x);
   blobmsg_add_u32(&reply_buf, "y", status->motors.y);
   blobmsg_add_u32(&reply_buf, "z", status->motors.z);
+  blobmsg_add_u32(&reply_buf, "range_x", status->motors.range_x);
+  blobmsg_add_u32(&reply_buf, "range_y", status->motors.range_y);
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "camera_calibration");

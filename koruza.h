@@ -26,6 +26,8 @@ struct koruza_motor_status {
   int32_t x;
   int32_t y;
   int32_t z;
+  uint32_t range_x;
+  uint32_t range_y;
 };
 
 struct koruza_camera_calibration {
