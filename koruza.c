@@ -27,6 +27,9 @@
 
 #define MAX_SFP_MODULE_ID_LENGTH 64
 
+#define KORUZA_REFRESH_INTERVAL 500
+#define KORUZA_MCU_TIMEOUT 1000
+
 // uBus context.
 static struct ubus_context *koruza_ubus;
 // Status of the connected KORUZA unit.
@@ -74,8 +77,7 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
   timer_wait_reply.cb = koruza_timer_wait_reply_handler;
-  // TODO: Make the period configurable via UCI.
-  uloop_timeout_set(&timer_status, 10000);
+  uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
 
   return koruza_update_status();
 }
@@ -279,9 +281,8 @@ void koruza_timer_status_handler(struct uloop_timeout *timeout)
 
   koruza_update_status();
 
-  // TODO: Make the periods configurable via UCI.
-  uloop_timeout_set(&timer_status, 10000);
-  uloop_timeout_set(&timer_wait_reply, 1000);
+  uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
+  uloop_timeout_set(&timer_wait_reply, KORUZA_MCU_TIMEOUT);
 }
 
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer)
