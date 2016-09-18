@@ -71,8 +71,10 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y");
   status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance");
 
-  status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x") || 50000;
-  status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y") || 50000;
+  status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x");
+  status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y");
+  if (!status.motors.range_x) status.motors.range_x = 50000;
+  if (!status.motors.range_y) status.motors.range_y = 50000;
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
