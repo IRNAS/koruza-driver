@@ -35,6 +35,7 @@ typedef enum {
   TLV_MOTOR_POSITION = 4,
   TLV_CURRENT_READING = 5,
   TLV_SFP_CALIBRATION = 6,
+  TLV_ERROR_REPORT = 7,
 } tlv_type_t;
 
 /**
@@ -46,13 +47,15 @@ typedef enum {
   COMMAND_SEND_IR = 3,
   COMMAND_REBOOT = 4,
   COMMAND_FIRMWARE_UPGRADE = 5,
+  COMMAND_HOMING = 6,
 } tlv_command_t;
 
 /**
  * Replies supported by the reply TLV.
  */
 typedef enum {
-  REPLY_STATUS_REPORT = 1
+  REPLY_STATUS_REPORT = 1,
+  REPLY_ERROR_REPORT = 2,
 } tlv_reply_t;
 
 /**
@@ -63,6 +66,13 @@ typedef struct {
   int32_t y;
   int32_t z;
 } tlv_motor_position_t;
+
+/**
+ * Contents of the error report TLV.
+ */
+typedef struct {
+  uint32_t code;
+} tlv_error_report_t;
 
 /**
  * Contents of the motor position TLV.
@@ -167,6 +177,15 @@ message_result_t message_tlv_add_reply(message_t *message, tlv_reply_t reply);
 message_result_t message_tlv_add_motor_position(message_t *message, const tlv_motor_position_t *position);
 
 /**
+ * Adds an error report TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param report Error report structure
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_error_report(message_t *message, const tlv_error_report_t *report);
+
+/**
  * Adds a current reading TLV to a protocol message.
  *
  * @param message Destination message instance to add the TLV to
@@ -230,6 +249,15 @@ message_result_t message_tlv_get_reply(const message_t *message, tlv_reply_t *re
  * @return Operation result code
  */
 message_result_t message_tlv_get_motor_position(const message_t *message, tlv_motor_position_t *position);
+
+/**
+ * Find the first error report TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param report Destination error report variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_error_report(const message_t *message, tlv_error_report_t *report);
 
 /**
  * Find the first current reading TLV in a message and copies it.

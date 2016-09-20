@@ -141,6 +141,13 @@ message_result_t message_tlv_add_motor_position(message_t *message, const tlv_mo
   return message_tlv_add(message, TLV_MOTOR_POSITION, sizeof(tlv_motor_position_t), (uint8_t*) &tmp);
 }
 
+message_result_t message_tlv_add_error_report(message_t *message, const tlv_error_report_t *report)
+{
+  tlv_error_report_t tmp;
+  tmp.code = htonl(report->code);
+  return message_tlv_add(message, TLV_ERROR_REPORT, sizeof(tlv_error_report_t), (uint8_t*) &tmp);
+}
+
 message_result_t message_tlv_add_current_reading(message_t *message, uint16_t current)
 {
   current = htons(current);
@@ -210,6 +217,18 @@ message_result_t message_tlv_get_motor_position(const message_t *message, tlv_mo
   position->x = ntohl(position->x);
   position->y = ntohl(position->y);
   position->z = ntohl(position->z);
+
+  return MESSAGE_SUCCESS;
+}
+
+message_result_t message_tlv_get_error_report(const message_t *message, tlv_error_report_t *report)
+{
+  message_result_t result = message_tlv_get(message, TLV_ERROR_REPORT, (uint8_t*) report, sizeof(tlv_error_report_t));
+  if (result != MESSAGE_SUCCESS) {
+    return result;
+  }
+
+  report->code = ntohl(report->code);
 
   return MESSAGE_SUCCESS;
 }

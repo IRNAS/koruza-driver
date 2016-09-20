@@ -38,15 +38,21 @@ struct koruza_camera_calibration {
   uint32_t distance;
 };
 
+struct koruza_error_report {
+  uint32_t code;
+};
+
 struct koruza_status {
   uint8_t connected;
 
+  struct koruza_error_report errors;
   struct koruza_motor_status motors;
   struct koruza_camera_calibration camera_calibration;
 };
 
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus);
 int koruza_move_motor(int32_t x, int32_t y, int32_t z);
+int koruza_homing();
 int koruza_update_status();
 const struct koruza_status *koruza_get_status();
 

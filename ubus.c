@@ -69,6 +69,10 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blob_buf_init(&reply_buf, 0);
   blobmsg_add_u8(&reply_buf, "connected", status->connected);
 
+  c = blobmsg_open_table(&reply_buf, "errors");
+  blobmsg_add_u32(&reply_buf, "code", status->errors.code);
+  blobmsg_close_table(&reply_buf, c);
+
   c = blobmsg_open_table(&reply_buf, "motors");
   blobmsg_add_u32(&reply_buf, "x", status->motors.x);
   blobmsg_add_u32(&reply_buf, "y", status->motors.y);
@@ -90,8 +94,16 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   return UBUS_STATUS_OK;
 }
 
+static int ubus_homing(struct ubus_context *ctx, struct ubus_object *obj,
+                       struct ubus_request_data *req, const char *method,
+                       struct blob_attr *msg)
+{
+  return koruza_homing() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
+  UBUS_METHOD_NOARG("homing", ubus_homing),
   UBUS_METHOD_NOARG("get_status", ubus_get_status)
 };
 

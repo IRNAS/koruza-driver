@@ -118,7 +118,16 @@ void koruza_serial_message_handler(const message_t *message)
         status.motors.z = position.z;
       }
 
-      // TODO: Other reports.
+      break;
+    }
+
+    case REPLY_ERROR_REPORT: {
+      // Parse the error report.
+      tlv_error_report_t error;
+      if (message_tlv_get_error_report(message, &error) == MESSAGE_SUCCESS) {
+        status.errors.code = error.code;
+      }
+
       break;
     }
   }
@@ -139,6 +148,22 @@ int koruza_move_motor(int32_t x, int32_t y, int32_t z)
   message_init(&msg);
   message_tlv_add_command(&msg, COMMAND_MOVE_MOTOR);
   message_tlv_add_motor_position(&msg, &position);
+  message_tlv_add_checksum(&msg);
+  serial_send_message(&msg);
+  message_free(&msg);
+
+  return 0;
+}
+
+int koruza_homing()
+{
+  if (!status.connected) {
+    return -1;
+  }
+
+  message_t msg;
+  message_init(&msg);
+  message_tlv_add_command(&msg, COMMAND_HOMING);
   message_tlv_add_checksum(&msg);
   serial_send_message(&msg);
   message_free(&msg);
