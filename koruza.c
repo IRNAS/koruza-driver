@@ -73,8 +73,8 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x");
   status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y");
-  if (!status.motors.range_x) status.motors.range_x = 50000;
-  if (!status.motors.range_y) status.motors.range_y = 50000;
+  if (!status.motors.range_x) status.motors.range_x = 25000;
+  if (!status.motors.range_y) status.motors.range_y = 25000;
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
