@@ -32,6 +32,8 @@
 
 // uBus context.
 static struct ubus_context *koruza_ubus;
+// UCI context.
+static struct uci_context *koruza_uci;
 // Status of the connected KORUZA unit.
 static struct koruza_status status;
 // Timer for periodic status retrieval.
@@ -47,6 +49,7 @@ void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 {
   koruza_ubus = ubus;
+  koruza_uci = uci;
 
   memset(&status, 0, sizeof(struct koruza_status));
   serial_set_message_handler(koruza_serial_message_handler);
@@ -76,6 +79,9 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   if (!status.motors.range_x) status.motors.range_x = 25000;
   if (!status.motors.range_y) status.motors.range_y = 25000;
 
+  status.motors.x = uci_get_int(uci, "koruza.@motors[0].last_x");
+  status.motors.y = uci_get_int(uci, "koruza.@motors[0].last_y");
+
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
   timer_wait_reply.cb = koruza_timer_wait_reply_handler;
@@ -94,9 +100,12 @@ void koruza_serial_message_handler(const message_t *message)
   // TODO: Remove this debug print.
   message_print(message);
 
-  // Check if this is a reply message.
-  tlv_reply_t reply;
-  if (message_tlv_get_reply(message, &reply) != MESSAGE_SUCCESS) {
+  // Check if this is a reply or a command message.
+  tlv_reply_t reply = 0;
+  tlv_command_t command = 0;
+  message_tlv_get_reply(message, &reply);
+  message_tlv_get_command(message, &command);
+  if (!reply && !command) {
     return;
   }
 
@@ -108,6 +117,9 @@ void koruza_serial_message_handler(const message_t *message)
         // Was not considered connected until now.
         syslog(LOG_INFO, "Detected KORUZA MCU on the configured serial port.");
         status.connected = 1;
+
+        // Restore motor position.
+        koruza_restore_motor();
       }
 
       // Handle motor position report.
@@ -116,6 +128,18 @@ void koruza_serial_message_handler(const message_t *message)
         status.motors.x = position.x;
         status.motors.y = position.y;
         status.motors.z = position.z;
+
+        // Save stored position.
+        uci_set_int(koruza_uci, "koruza.@motors[0].last_x", status.motors.x);
+        uci_set_int(koruza_uci, "koruza.@motors[0].last_y", status.motors.y);
+
+        // Commit changes.
+        struct uci_ptr ptr;
+        if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
+            uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
+          syslog(LOG_ERR, "Failed to commit last motor position.");
+          return;
+        }
       }
 
       break;
@@ -131,6 +155,35 @@ void koruza_serial_message_handler(const message_t *message)
       break;
     }
   }
+
+  switch (command) {
+    case COMMAND_RESTORE_MOTOR: {
+      // Explicit request from the MCU to restore motor position.
+      koruza_restore_motor();
+      break;
+    }
+
+    default: {
+      // Ignore.
+    }
+  }
+}
+
+int koruza_restore_motor()
+{
+  tlv_motor_position_t position;
+  position.x = status.motors.x;
+  position.y = status.motors.y;
+  position.z = status.motors.z;
+
+  message_t msg;
+  message_init(&msg);
+  message_tlv_add_command(&msg, COMMAND_RESTORE_MOTOR);
+  message_tlv_add_motor_position(&msg, &position);
+  message_tlv_add_checksum(&msg);
+  serial_send_message(&msg);
+  message_free(&msg);
+  return 0;
 }
 
 int koruza_move_motor(int32_t x, int32_t y, int32_t z)

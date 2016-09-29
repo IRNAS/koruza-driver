@@ -40,4 +40,22 @@ char *uci_get_string(struct uci_context *uci, const char *location);
  */
 int uci_get_int(struct uci_context *uci, const char *location);
 
+/**
+ * Stores a new string value into UCI configuration.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ * @param value Value to store
+ */
+void uci_set_string(struct uci_context *uci, const char *location, const char *value);
+
+/**
+ * Stores a new integer value into UCI configuration.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ * @param value Value to store
+ */
+void uci_set_int(struct uci_context *uci, const char *location, int value);
+
 #endif

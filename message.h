@@ -48,6 +48,7 @@ typedef enum {
   COMMAND_REBOOT = 4,
   COMMAND_FIRMWARE_UPGRADE = 5,
   COMMAND_HOMING = 6,
+  COMMAND_RESTORE_MOTOR = 7,
 } tlv_command_t;
 
 /**

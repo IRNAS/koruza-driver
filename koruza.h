@@ -51,6 +51,7 @@ struct koruza_status {
 };
 
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus);
+int koruza_restore_motor();
 int koruza_move_motor(int32_t x, int32_t y, int32_t z);
 int koruza_homing();
 int koruza_update_status();

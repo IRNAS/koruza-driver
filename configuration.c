@@ -52,3 +52,26 @@ int uci_get_int(struct uci_context *uci, const char *location)
 
   return result;
 }
+
+void uci_set_string(struct uci_context *uci, const char *location, const char *value)
+{
+  struct uci_ptr ptr;
+  char *loc = strdup(location);
+
+  // Perform an UCI extended lookup.
+  if (uci_lookup_ptr(uci, &ptr, loc, true) != UCI_OK) {
+    free(loc);
+    return;
+  }
+
+  ptr.value = value;
+  uci_set(uci, &ptr);
+  free(loc);
+}
+
+void uci_set_int(struct uci_context *uci, const char *location, int value)
+{
+  char buffer[16];
+  snprintf(buffer, sizeof(buffer), "%d", value);
+  uci_set_string(uci, location, buffer);
+}
