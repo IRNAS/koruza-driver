@@ -101,9 +101,17 @@ static int ubus_homing(struct ubus_context *ctx, struct ubus_object *obj,
   return koruza_homing() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+static int ubus_reboot(struct ubus_context *ctx, struct ubus_object *obj,
+                       struct ubus_request_data *req, const char *method,
+                       struct blob_attr *msg)
+{
+  return koruza_reboot() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
+  UBUS_METHOD_NOARG("reboot", ubus_reboot),
   UBUS_METHOD_NOARG("get_status", ubus_get_status)
 };
 

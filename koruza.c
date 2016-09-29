@@ -224,6 +224,18 @@ int koruza_homing()
   return 0;
 }
 
+int koruza_reboot()
+{
+  message_t msg;
+  message_init(&msg);
+  message_tlv_add_command(&msg, COMMAND_REBOOT);
+  message_tlv_add_checksum(&msg);
+  serial_send_message(&msg);
+  message_free(&msg);
+
+  return 0;
+}
+
 int koruza_update_status()
 {
   // Send a status update request via the serial interface.
