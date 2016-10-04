@@ -108,11 +108,43 @@ static int ubus_reboot(struct ubus_context *ctx, struct ubus_object *obj,
   return koruza_reboot() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+enum {
+  KORUZA_CALIBRATION_X,
+  KORUZA_CALIBRATION_Y,
+  __KORUZA_CALIBRATION_MAX,
+};
+
+static const struct blobmsg_policy koruza_calibration_policy[__KORUZA_CALIBRATION_MAX] = {
+  [KORUZA_CALIBRATION_X] = { .name = "x", .type = BLOBMSG_TYPE_INT32 },
+  [KORUZA_CALIBRATION_Y] = { .name = "y", .type = BLOBMSG_TYPE_INT32 },
+};
+
+static int ubus_set_webcam_calibration(struct ubus_context *ctx, struct ubus_object *obj,
+                                       struct ubus_request_data *req, const char *method,
+                                       struct blob_attr *msg)
+{
+  struct blob_attr *tb[__KORUZA_CALIBRATION_MAX];
+
+  blobmsg_parse(koruza_motor_policy, __KORUZA_CALIBRATION_MAX, tb, blob_data(msg), blob_len(msg));
+
+  if (!tb[KORUZA_CALIBRATION_X] || !tb[KORUZA_CALIBRATION_Y]) {
+    return UBUS_STATUS_INVALID_ARGUMENT;
+  }
+
+  int result = koruza_set_webcam_calibration(
+    (int32_t) blobmsg_get_u32(tb[KORUZA_CALIBRATION_X]),
+    (int32_t) blobmsg_get_u32(tb[KORUZA_CALIBRATION_Y])
+  );
+
+  return result < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
   UBUS_METHOD_NOARG("reboot", ubus_reboot),
-  UBUS_METHOD_NOARG("get_status", ubus_get_status)
+  UBUS_METHOD_NOARG("get_status", ubus_get_status),
+  UBUS_METHOD("set_webcam_calibration", ubus_set_webcam_calibration, koruza_calibration_policy)
 };
 
 static struct ubus_object_type koruza_type =

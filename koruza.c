@@ -252,6 +252,25 @@ int koruza_update_status()
   return 0;
 }
 
+int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
+{
+  status.camera_calibration.offset_x = offset_x;
+  status.camera_calibration.offset_y = offset_y;
+
+  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_x", offset_x);
+  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_y", offset_y);
+
+  // Commit changes.
+  struct uci_ptr ptr;
+  if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
+      uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
+    syslog(LOG_ERR, "Failed to commit updated webcam calibration offsets.");
+    return 1;
+  }
+
+  return 0;
+}
+
 enum {
   SFP_GET_MODULES_BUS,
   __SFP_GET_MODULES_MAX,
