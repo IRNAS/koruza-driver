@@ -271,6 +271,23 @@ int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
   return 0;
 }
 
+int koruza_set_distance(uint32_t distance)
+{
+  status.camera_calibration.distance = distance;
+
+  uci_set_int(koruza_uci, "koruza.@webcam[0].distance", distance);
+
+  // Commit changes.
+  struct uci_ptr ptr;
+  if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
+      uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
+    syslog(LOG_ERR, "Failed to commit updated distance.");
+    return 1;
+  }
+
+  return 0;
+}
+
 enum {
   SFP_GET_MODULES_BUS,
   __SFP_GET_MODULES_MAX,

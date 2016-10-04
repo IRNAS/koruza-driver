@@ -57,6 +57,7 @@ int koruza_homing();
 int koruza_reboot();
 int koruza_update_status();
 int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y);
+int koruza_set_distance(uint32_t distance);
 const struct koruza_status *koruza_get_status();
 
 #endif
