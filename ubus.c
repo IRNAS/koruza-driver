@@ -89,6 +89,11 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "distance", status->camera_calibration.distance);
   blobmsg_close_table(&reply_buf, c);
 
+  c = blobmsg_open_table(&reply_buf, "sfp");
+  blobmsg_add_u16(&reply_buf, "tx_power", status->sfp.tx_power);
+  blobmsg_add_u16(&reply_buf, "rx_power", status->sfp.rx_power);
+  blobmsg_close_table(&reply_buf, c);
+
   ubus_send_reply(ctx, req, reply_buf.head);
 
   return UBUS_STATUS_OK;

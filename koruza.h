@@ -42,12 +42,18 @@ struct koruza_error_report {
   uint32_t code;
 };
 
+struct koruza_sfp_status {
+  uint16_t tx_power;
+  uint16_t rx_power;
+};
+
 struct koruza_status {
   uint8_t connected;
 
   struct koruza_error_report errors;
   struct koruza_motor_status motors;
   struct koruza_camera_calibration camera_calibration;
+  struct koruza_sfp_status sfp;
 };
 
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus);

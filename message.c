@@ -154,6 +154,12 @@ message_result_t message_tlv_add_current_reading(message_t *message, uint16_t cu
   return message_tlv_add(message, TLV_CURRENT_READING, sizeof(uint16_t), (uint8_t*) &current);
 }
 
+message_result_t message_tlv_add_power_reading(message_t *message, uint16_t power)
+{
+  power = htons(power);
+  return message_tlv_add(message, TLV_POWER_READING, sizeof(uint16_t), (uint8_t*) &power);
+}
+
 message_result_t message_tlv_add_sfp_calibration(message_t *message, const tlv_sfp_calibration_t *calibration)
 {
   tlv_sfp_calibration_t tmp;

@@ -36,6 +36,7 @@ typedef enum {
   TLV_CURRENT_READING = 5,
   TLV_SFP_CALIBRATION = 6,
   TLV_ERROR_REPORT = 7,
+  TLV_POWER_READING = 8,
 } tlv_type_t;
 
 /**
@@ -194,6 +195,15 @@ message_result_t message_tlv_add_error_report(message_t *message, const tlv_erro
  * @return Operation result code
  */
 message_result_t message_tlv_add_current_reading(message_t *message, uint16_t current);
+
+/**
+ * Adds a power reading TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param power Power reading
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_power_reading(message_t *message, uint16_t power);
 
 /**
  * Adds a SFP calibration TLV to a protocol message.

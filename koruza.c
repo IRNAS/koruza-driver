@@ -238,16 +238,17 @@ int koruza_reboot()
 
 int koruza_update_status()
 {
+  // Update data from the SFP driver.
+  koruza_update_sfp();
+
   // Send a status update request via the serial interface.
   message_t msg;
   message_init(&msg);
   message_tlv_add_command(&msg, COMMAND_GET_STATUS);
+  message_tlv_add_power_reading(&msg, status.sfp.rx_power);
   message_tlv_add_checksum(&msg);
   serial_send_message(&msg);
   message_free(&msg);
-
-  // Update data from the SFP driver.
-  koruza_update_sfp();
 
   return 0;
 }
@@ -321,6 +322,64 @@ static void koruza_sfp_get_module(struct ubus_request *req, int type, struct blo
 }
 
 enum {
+  SFP_GET_DIAG_VALUE,
+  __SFP_GET_DIAG_MAX,
+};
+
+static const struct blobmsg_policy sfp_get_diagnostics_policy[__SFP_GET_DIAG_MAX] = {
+  [SFP_GET_DIAG_VALUE] = { .name = "value", .type = BLOBMSG_TYPE_TABLE },
+};
+
+enum {
+  SFP_DIAG_ITEM_TX_POWER,
+  SFP_DIAG_ITEM_RX_POWER,
+  __SFP_DIAG_ITEM_MAX,
+};
+
+static const struct blobmsg_policy sfp_diagnostics_item_policy[__SFP_DIAG_ITEM_MAX] = {
+  [SFP_DIAG_ITEM_TX_POWER] = { .name = "tx_power", .type = BLOBMSG_TYPE_STRING },
+  [SFP_DIAG_ITEM_RX_POWER] = { .name = "rx_power", .type = BLOBMSG_TYPE_STRING },
+};
+
+static void koruza_sfp_get_diagnostics(struct ubus_request *req, int type, struct blob_attr *msg)
+{
+  struct blob_attr *module;
+  int rem;
+
+  blobmsg_for_each_attr(module, msg, rem) {
+    struct blob_attr *tb[__SFP_GET_DIAG_MAX];
+    struct blob_attr *tb_value[__SFP_DIAG_ITEM_MAX];
+
+    blobmsg_parse(sfp_get_diagnostics_policy, __SFP_GET_DIAG_MAX, tb,
+      blobmsg_data(module), blobmsg_data_len(module));
+
+    if (!tb[SFP_GET_DIAG_VALUE]) {
+      continue;
+    }
+
+    blobmsg_parse(sfp_diagnostics_item_policy, __SFP_DIAG_ITEM_MAX, tb_value,
+      blobmsg_data(tb[SFP_GET_DIAG_VALUE]), blobmsg_data_len(tb[SFP_GET_DIAG_VALUE]));
+
+    if (tb_value[SFP_DIAG_ITEM_TX_POWER]) {
+      const char *tx_power = blobmsg_get_string(tb_value[SFP_DIAG_ITEM_TX_POWER]);
+      float tx_power_float = 0;
+      sscanf(tx_power, "%f", &tx_power_float);
+      status.sfp.tx_power = (uint16_t) (tx_power_float * 10000);
+    }
+
+    if (tb_value[SFP_DIAG_ITEM_RX_POWER]) {
+      const char *rx_power = blobmsg_get_string(tb_value[SFP_DIAG_ITEM_RX_POWER]);
+      float rx_power_float = 0;
+      sscanf(rx_power, "%f", &rx_power_float);
+      status.sfp.rx_power = (uint16_t) (rx_power_float * 10000);
+    }
+
+    // Only process the first module.
+    break;
+  }
+}
+
+enum {
   SFP_VENDOR_DATA,
   __SFP_VENDOR_MAX,
 };
@@ -380,6 +439,21 @@ int koruza_update_sfp()
         req.head,
         koruza_sfp_get_module,
         &module_id,
+        1000
+      ) != UBUS_STATUS_OK) {
+    return -1;
+  }
+
+  // Get diagnostic data for this module.
+  blob_buf_init(&req, 0);
+  blobmsg_add_string(&req, "module", module_id);
+  if (ubus_invoke(
+        koruza_ubus,
+        ubus_id,
+        "get_diagnostics",
+        req.head,
+        koruza_sfp_get_diagnostics,
+        NULL,
         1000
       ) != UBUS_STATUS_OK) {
     return -1;
