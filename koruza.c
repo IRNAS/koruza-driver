@@ -97,9 +97,6 @@ const struct koruza_status *koruza_get_status()
 
 void koruza_serial_message_handler(const message_t *message)
 {
-  // TODO: Remove this debug print.
-  message_print(message);
-
   // Check if this is a reply or a command message.
   tlv_reply_t reply = 0;
   tlv_command_t command = 0;
