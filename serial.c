@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "serial.h"
+#include "configuration.h"
 
 #include <libubox/uloop.h>
 #include <sys/types.h>
@@ -40,11 +41,21 @@ void serial_fd_handler(struct uloop_fd *ufd, unsigned int events);
 
 int serial_init(struct uci_context *uci)
 {
+  int result = 0;
   serial_ufd.fd = -1;
   frame_parser_init(&parser);
 
-  // TODO: Read device from UCI configuration.
-  return serial_init_device("/dev/ttyS1");
+  // Read device from configuration.
+  char *device = uci_get_string(uci, "koruza.@mcu[0].device");
+  if (device != NULL) {
+    result = serial_init_device(device);
+    free(device);
+  } else {
+    // Fallback to default device name.
+    result = serial_init_device("/dev/ttyS1");
+  }
+
+  return result;
 }
 
 void serial_set_message_handler(frame_message_handler handler)
