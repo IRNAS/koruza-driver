@@ -55,8 +55,10 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   serial_set_message_handler(koruza_serial_message_handler);
 
   // Initialize calibration defaults.
-  status.camera_calibration.width = 1280;
-  status.camera_calibration.height = 720;
+  status.camera_calibration.port = uci_get_int(uci, "koruza.@webcam[0].port", 8080);
+  status.camera_calibration.path = uci_get_string(uci, "koruza.@webcam[0].path");
+  status.camera_calibration.width = uci_get_int(uci, "koruza.@webcam[0].width", 1280);
+  status.camera_calibration.height = uci_get_int(uci, "koruza.@webcam[0].height", 720);
 
   char *webcam_resolution = uci_get_string(uci, "mjpg-streamer.core.resolution");
   if (webcam_resolution != NULL) {
@@ -70,17 +72,15 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
     free(webcam_resolution);
   }
 
-  status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x");
-  status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y");
-  status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance");
+  status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x", 0);
+  status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y", 0);
+  status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance", 0);
 
-  status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x");
-  status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y");
-  if (!status.motors.range_x) status.motors.range_x = 25000;
-  if (!status.motors.range_y) status.motors.range_y = 25000;
+  status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x", 25000);
+  status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y", 25000);
 
-  status.motors.x = uci_get_int(uci, "koruza.@motors[0].last_x");
-  status.motors.y = uci_get_int(uci, "koruza.@motors[0].last_y");
+  status.motors.x = uci_get_int(uci, "koruza.@motors[0].last_x", 0);
+  status.motors.y = uci_get_int(uci, "koruza.@motors[0].last_y", 0);
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;

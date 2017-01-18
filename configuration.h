@@ -36,9 +36,10 @@ char *uci_get_string(struct uci_context *uci, const char *location);
  *
  * @param uci UCI context
  * @param location UCI location expression (extended syntax)
+ * @param def Default value
  * @return Target integer
  */
-int uci_get_int(struct uci_context *uci, const char *location);
+int uci_get_int(struct uci_context *uci, const char *location, int def);
 
 /**
  * Stores a new string value into UCI configuration.

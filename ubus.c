@@ -82,6 +82,8 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "camera_calibration");
+  blobmsg_add_u16(&reply_buf, "port", status->camera_calibration.port);
+  blobmsg_add_string(&reply_buf, "path", status->camera_calibration.path);
   blobmsg_add_u32(&reply_buf, "width", status->camera_calibration.width);
   blobmsg_add_u32(&reply_buf, "height", status->camera_calibration.height);
   blobmsg_add_u32(&reply_buf, "offset_x", status->camera_calibration.offset_x);

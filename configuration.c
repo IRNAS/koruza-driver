@@ -41,11 +41,11 @@ char *uci_get_string(struct uci_context *uci, const char *location)
   return result;
 }
 
-int uci_get_int(struct uci_context *uci, const char *location)
+int uci_get_int(struct uci_context *uci, const char *location, int def)
 {
   char *string = uci_get_string(uci, location);
   if (!string)
-    return 0;
+    return def;
 
   int result = atoi(string);
   free(string);
