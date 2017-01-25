@@ -37,6 +37,10 @@ typedef enum {
   TLV_SFP_CALIBRATION = 6,
   TLV_ERROR_REPORT = 7,
   TLV_POWER_READING = 8,
+
+  // Network communication TLVs.
+  TLV_NET_HELLO = 100,
+  TLV_NET_SIGNATURE = 101,
 } tlv_type_t;
 
 /**

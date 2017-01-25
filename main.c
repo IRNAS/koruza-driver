@@ -29,6 +29,7 @@
 #include "serial.h"
 #include "koruza.h"
 #include "ubus.h"
+#include "network.h"
 
 // Global ubus connection context.
 static struct ubus_context *ubus;
@@ -98,6 +99,11 @@ int main(int argc, char **argv)
 
   if (ubus_init(ubus) != 0) {
     syslog(LOG_ERR, "Failed to initialize ubus!");
+    return -1;
+  }
+
+  if (network_init(uci) != 0) {
+    syslog(LOG_ERR, "Failed to initialize network.");
     return -1;
   }
 

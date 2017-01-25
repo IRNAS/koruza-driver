@@ -27,6 +27,7 @@ serial.c
 koruza.c
 ubus.c
 configuration.c
+network.c
 main.c
 )
 
