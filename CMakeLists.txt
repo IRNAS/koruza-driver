@@ -24,6 +24,7 @@ crc32.c
 
 set(DAEMON_SOURCES
 serial.c
+gpio.c
 koruza.c
 ubus.c
 configuration.c

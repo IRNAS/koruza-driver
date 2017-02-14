@@ -18,17 +18,20 @@
  */
 #include "koruza.h"
 #include "serial.h"
+#include "gpio.h"
 #include "configuration.h"
 
 #include <string.h>
 #include <syslog.h>
 #include <libubox/uloop.h>
 #include <libubox/blobmsg.h>
+#include <unistd.h>
 
 #define MAX_SFP_MODULE_ID_LENGTH 64
 
 #define KORUZA_REFRESH_INTERVAL 500
 #define KORUZA_MCU_TIMEOUT 1000
+#define KORUZA_MCU_RESET_DELAY 120000
 
 // uBus context.
 static struct ubus_context *koruza_ubus;
@@ -86,6 +89,12 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   timer_status.cb = koruza_timer_status_handler;
   timer_wait_reply.cb = koruza_timer_wait_reply_handler;
   uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
+
+  // Perform a hard MCU reset.
+  status.gpio_reset = uci_get_int(uci, "koruza.@mcu[0].gpio_reset", 18);
+  if (koruza_hard_reset() != 0) {
+    syslog(LOG_WARNING, "Failed to trigger MCU reset.");
+  }
 
   return koruza_update_status();
 }
@@ -230,6 +239,33 @@ int koruza_reboot()
   serial_send_message(&msg);
   message_free(&msg);
 
+  return 0;
+}
+
+int koruza_hard_reset()
+{
+  if (gpio_export(status.gpio_reset) != 0) {
+    return -1;
+  }
+
+  if (gpio_direction(status.gpio_reset, GPIO_OUT) != 0) {
+    gpio_unexport(status.gpio_reset);
+    return -1;
+  }
+
+  if (gpio_write(status.gpio_reset, GPIO_HIGH) != 0) {
+    gpio_unexport(status.gpio_reset);
+    return -1;
+  }
+
+  usleep(KORUZA_MCU_RESET_DELAY);
+
+  if (gpio_write(status.gpio_reset, GPIO_LOW) != 0) {
+    gpio_unexport(status.gpio_reset);
+    return -1;
+  }
+
+  gpio_unexport(status.gpio_reset);
   return 0;
 }
 
