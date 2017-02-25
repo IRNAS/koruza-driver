@@ -21,17 +21,23 @@
 #include "gpio.h"
 #include "configuration.h"
 
+#include "rpi_ws281x/ws2811.h"
+
 #include <string.h>
 #include <syslog.h>
 #include <libubox/uloop.h>
 #include <libubox/blobmsg.h>
 #include <unistd.h>
+#include <math.h>
 
 #define MAX_SFP_MODULE_ID_LENGTH 64
 
+#define KORUZA_SFP_REFRESH_INTERVAL 100
 #define KORUZA_REFRESH_INTERVAL 500
 #define KORUZA_MCU_TIMEOUT 1000
 #define KORUZA_MCU_RESET_DELAY 120000
+
+#define LED_COUNT 24
 
 // uBus context.
 static struct ubus_context *koruza_ubus;
@@ -41,12 +47,56 @@ static struct uci_context *koruza_uci;
 static struct koruza_status status;
 // Timer for periodic status retrieval.
 struct uloop_timeout timer_status;
+// Timer for periodic SFP status retrieval.
+struct uloop_timeout timer_sfp_status;
 // Timer for detection when MCU disconnects.
 struct uloop_timeout timer_wait_reply;
 
+// LED configuration.
+static ws2811_t led_config = {
+  .freq = WS2811_TARGET_FREQ,
+  .dmanum = 5,
+  .channel =
+  {
+    [0] =
+    {
+      .gpionum = 40,
+      .count = LED_COUNT,
+      .invert = 0,
+      .brightness = 255,
+      .strip_type = WS2811_STRIP_GRB,
+    },
+    [1] =
+    {
+      .gpionum = 0,
+      .count = 0,
+      .invert = 0,
+      .brightness = 0,
+    },
+  },
+};
+
+struct color_map {
+  int power;
+  ws2811_led_t color;
+};
+
+static struct color_map led_color_map[] = {
+  {.power = -40, .color = 0x00FF0000},
+  {.power = -38, .color = 0x00FF4500},
+  {.power = -30, .color = 0x00FF7F50},
+  {.power = -25, .color = 0x00FF00FF},
+  {.power = -20, .color = 0x000000FF},
+  {.power = -15, .color = 0x000045FF},
+  {.power = -10, .color = 0x0000FFFF},
+  {.power =  -5, .color = 0x0000FF00},
+};
+
 int koruza_update_sfp();
+int koruza_update_sfp_leds();
 void koruza_serial_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
+void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
 
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
@@ -87,8 +137,18 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
+  timer_sfp_status.cb = koruza_timer_sfp_status_handler;
   timer_wait_reply.cb = koruza_timer_wait_reply_handler;
   uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
+  uloop_timeout_set(&timer_sfp_status, KORUZA_SFP_REFRESH_INTERVAL);
+
+  // Initialize LEDs.
+  led_config.channel[0].gpionum = uci_get_int(uci, "koruza.@leds[0].gpio", 40);
+  if (ws2811_init(&led_config) != WS2811_SUCCESS) {
+    syslog(LOG_WARNING, "Failed to initialize LEDs.");
+  } else {
+    koruza_update_sfp_leds();
+  }
 
   // Perform a hard MCU reset.
   status.gpio_reset = uci_get_int(uci, "koruza.@mcu[0].gpio_reset", 18);
@@ -269,10 +329,38 @@ int koruza_hard_reset()
   return 0;
 }
 
+int koruza_update_sfp_leds()
+{
+  double rx_power_dbm = 10.0 * log10(((double) status.sfp.rx_power) / 10000.0);
+  if (rx_power_dbm < -40.0) {
+    rx_power_dbm = -40.0;
+  }
+
+  // Update LEDs based on SFP power.
+  ws2811_led_t color = led_color_map[0].color;
+  for (size_t i = 0; i < sizeof(led_color_map) / sizeof(struct color_map); i++) {
+    if (rx_power_dbm >= (double) led_color_map[i].power) {
+      color = led_color_map[i].color;
+    }
+  }
+
+  for (size_t i = 0; i < LED_COUNT; i++) {
+    led_config.channel[0].leds[i] = color;
+  }
+
+  if (ws2811_render(&led_config) != WS2811_SUCCESS) {
+    syslog(LOG_WARNING, "Failed to render LED status.");
+    return -1;
+  }
+
+  return 0;
+}
+
 int koruza_update_status()
 {
   // Update data from the SFP driver.
   koruza_update_sfp();
+  koruza_update_sfp_leds();
 
   // Send a status update request via the serial interface.
   message_t msg;
@@ -347,7 +435,8 @@ static void koruza_sfp_get_module(struct ubus_request *req, int type, struct blo
     }
 
     const char *bus = blobmsg_get_string(tb[SFP_GET_MODULES_BUS]);
-    if (strcmp(bus, "/dev/i2c-0") == 0) {
+    // TODO: Better way to detect primary module.
+    if (strcmp(bus, "/dev/i2c-1") == 0) {
       strncpy((char*) req->priv, module_id, MAX_SFP_MODULE_ID_LENGTH);
       break;
     }
@@ -510,14 +599,23 @@ int koruza_update_sfp()
   return 0;
 }
 
-void koruza_timer_status_handler(struct uloop_timeout *timeout)
+void koruza_timer_status_handler(struct uloop_timeout *timer)
 {
-  (void) timeout;
+  (void) timer;
 
   koruza_update_status();
 
   uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
   uloop_timeout_set(&timer_wait_reply, KORUZA_MCU_TIMEOUT);
+}
+
+void koruza_timer_sfp_status_handler(struct uloop_timeout *timer)
+{
+  // Update data from the SFP driver.
+  koruza_update_sfp();
+  koruza_update_sfp_leds();
+
+  uloop_timeout_set(timer, KORUZA_SFP_REFRESH_INTERVAL);
 }
 
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer)
