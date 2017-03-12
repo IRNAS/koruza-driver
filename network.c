@@ -40,7 +40,7 @@ static struct avl_tree discovered_units;
 // Multicast socket listening for autodiscovery messages.
 static struct uloop_fd ad_socket;
 // Multicast group address.
-static struct sockaddr_in6 multicast_group;
+static struct in6_addr multicast_group;
 // Announce timer.
 static struct uloop_timeout timer_announce;
 // Currently selected pair.

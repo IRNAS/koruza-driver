@@ -127,8 +127,8 @@ int serial_send_message(const message_t *message)
   while (offset < size) {
     ssize_t written = write(serial_ufd.fd, &buffer[offset], size - offset);
     if (written < 0) {
-      syslog(LOG_ERR, "Failed to write frame (%d bytes) to serial device: %s (%d)",
-        size, strerror(errno), errno);
+      syslog(LOG_ERR, "Failed to write frame (%ld bytes) to serial device: %s (%d)",
+        (long int) size, strerror(errno), errno);
       return -1;
     }
 
