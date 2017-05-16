@@ -37,7 +37,7 @@
 #define KORUZA_MCU_TIMEOUT 1000
 #define KORUZA_MCU_RESET_DELAY 120000
 
-#define LED_COUNT 24
+#define LED_COUNT 25
 
 // uBus context.
 static struct ubus_context *koruza_ubus;
