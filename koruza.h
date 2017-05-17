@@ -22,6 +22,11 @@
 #include <uci.h>
 #include <libubus.h>
 
+// Survey resolution (number of bins in each direction).
+#define SURVEY_BINS 100
+// Survey coverage (motor coordinate distance from center to edge of survey).
+#define SURVEY_COVERAGE 10000
+
 struct koruza_motor_status {
   int32_t x;
   int32_t y;
@@ -59,6 +64,14 @@ struct koruza_status {
   struct koruza_sfp_status sfp;
 };
 
+struct survey_data_point {
+  uint16_t rx_power;
+};
+
+struct koruza_survey {
+  struct survey_data_point data[SURVEY_BINS][SURVEY_BINS];
+};
+
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus);
 int koruza_restore_motor();
 int koruza_move_motor(int32_t x, int32_t y, int32_t z);
@@ -69,5 +82,6 @@ int koruza_update_status();
 int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y);
 int koruza_set_distance(uint32_t distance);
 const struct koruza_status *koruza_get_status();
+const struct koruza_survey *koruza_get_survey();
 
 #endif

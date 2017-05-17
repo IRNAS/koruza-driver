@@ -174,6 +174,30 @@ static int ubus_set_distance(struct ubus_context *ctx, struct ubus_object *obj,
   return result < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+static int ubus_get_survey(struct ubus_context *ctx, struct ubus_object *obj,
+                           struct ubus_request_data *req, const char *method,
+                           struct blob_attr *msg)
+{
+  const struct koruza_survey *survey = koruza_get_survey();
+  void *c;
+
+  blob_buf_init(&reply_buf, 0);
+
+  c = blobmsg_open_array(&reply_buf, "data");
+  for (size_t row = 0; row < SURVEY_BINS; row++) {
+    void *c_row = blobmsg_open_array(&reply_buf, NULL);
+    for (size_t col = 0; col < SURVEY_BINS; col++) {
+      blobmsg_add_u16(&reply_buf, NULL, survey->data[row][col].rx_power);
+    }
+    blobmsg_close_array(&reply_buf, c_row);
+  }
+  blobmsg_close_array(&reply_buf, c);
+
+  ubus_send_reply(ctx, req, reply_buf.head);
+
+  return UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
@@ -181,6 +205,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD_NOARG("get_status", ubus_get_status),
   UBUS_METHOD("set_webcam_calibration", ubus_set_webcam_calibration, koruza_calibration_policy),
   UBUS_METHOD("set_distance", ubus_set_distance, koruza_distance_policy),
+  UBUS_METHOD_NOARG("get_survey", ubus_get_survey),
 };
 
 static struct ubus_object_type koruza_type =

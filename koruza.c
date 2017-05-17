@@ -36,6 +36,7 @@
 #define KORUZA_REFRESH_INTERVAL 500
 #define KORUZA_MCU_TIMEOUT 1000
 #define KORUZA_MCU_RESET_DELAY 120000
+#define KORUZA_SURVEY_INTERVAL 700
 
 #define LED_COUNT 25
 
@@ -49,8 +50,12 @@ static struct koruza_status status;
 struct uloop_timeout timer_status;
 // Timer for periodic SFP status retrieval.
 struct uloop_timeout timer_sfp_status;
+// Timer for periodic survey updates.
+struct uloop_timeout timer_survey;
 // Timer for detection when MCU disconnects.
 struct uloop_timeout timer_wait_reply;
+// Survey.
+static struct koruza_survey survey;
 
 // LED configuration.
 static ws2811_t led_config = {
@@ -94,10 +99,12 @@ static struct color_map led_color_map[] = {
 
 int koruza_update_sfp();
 int koruza_update_sfp_leds();
+void koruza_survey_reset();
 void koruza_serial_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
+void koruza_timer_survey_handler(struct uloop_timeout *timer);
 
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 {
@@ -106,6 +113,8 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   memset(&status, 0, sizeof(struct koruza_status));
   serial_set_message_handler(koruza_serial_message_handler);
+
+  koruza_survey_reset();
 
   // Initialize calibration defaults.
   status.camera_calibration.port = uci_get_int(uci, "koruza.@webcam[0].port", 8080);
@@ -139,8 +148,10 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   timer_status.cb = koruza_timer_status_handler;
   timer_sfp_status.cb = koruza_timer_sfp_status_handler;
   timer_wait_reply.cb = koruza_timer_wait_reply_handler;
+  timer_survey.cb = koruza_timer_survey_handler;
   uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
   uloop_timeout_set(&timer_sfp_status, KORUZA_SFP_REFRESH_INTERVAL);
+  uloop_timeout_set(&timer_survey, KORUZA_SURVEY_INTERVAL);
 
   // Initialize LEDs.
   led_config.channel[0].gpionum = uci_get_int(uci, "koruza.@leds[0].gpio", 40);
@@ -162,6 +173,11 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 const struct koruza_status *koruza_get_status()
 {
   return &status;
+}
+
+const struct koruza_survey *koruza_get_survey()
+{
+  return &survey;
 }
 
 void koruza_serial_message_handler(const message_t *message)
@@ -626,4 +642,28 @@ void koruza_timer_wait_reply_handler(struct uloop_timeout *timer)
 
   syslog(LOG_WARNING, "KORUZA MCU has been disconnected.");
   status.connected = 0;
+}
+
+void koruza_survey_reset()
+{
+  memset(&survey, 0, sizeof(survey));
+}
+
+void koruza_timer_survey_handler(struct uloop_timeout *timer)
+{
+  uloop_timeout_set(timer, KORUZA_SURVEY_INTERVAL);
+
+  if (!status.connected) {
+    return;
+  }
+
+  int x_bin = (status.motors.x * (SURVEY_BINS / 2)) / SURVEY_COVERAGE + (SURVEY_BINS / 2);
+  int y_bin = (status.motors.y * (SURVEY_BINS / 2)) / SURVEY_COVERAGE + (SURVEY_BINS / 2);
+
+  if (x_bin < 0) x_bin = 0;
+  if (x_bin >= SURVEY_BINS) x_bin = SURVEY_BINS - 1;
+  if (y_bin < 0) y_bin = 0;
+  if (y_bin >= SURVEY_BINS) y_bin = SURVEY_BINS - 1;
+
+  survey.data[y_bin][x_bin].rx_power = status.sfp.rx_power;
 }
