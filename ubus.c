@@ -69,6 +69,10 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blob_buf_init(&reply_buf, 0);
   blobmsg_add_u8(&reply_buf, "connected", status->connected);
 
+  c = blobmsg_open_table(&reply_buf, "leds");
+  blobmsg_add_u8(&reply_buf, "state", status->leds);
+  blobmsg_close_table(&reply_buf, c);
+
   c = blobmsg_open_table(&reply_buf, "errors");
   blobmsg_add_u32(&reply_buf, "code", status->errors.code);
   blobmsg_close_table(&reply_buf, c);
@@ -161,7 +165,7 @@ static int ubus_set_distance(struct ubus_context *ctx, struct ubus_object *obj,
 {
   struct blob_attr *tb[__KORUZA_DISTANCE_MAX];
 
-  blobmsg_parse(koruza_motor_policy, __KORUZA_DISTANCE_MAX, tb, blob_data(msg), blob_len(msg));
+  blobmsg_parse(koruza_distance_policy, __KORUZA_DISTANCE_MAX, tb, blob_data(msg), blob_len(msg));
 
   if (!tb[KORUZA_DISTANCE_DISTANCE]) {
     return UBUS_STATUS_INVALID_ARGUMENT;
@@ -198,6 +202,32 @@ static int ubus_get_survey(struct ubus_context *ctx, struct ubus_object *obj,
   return UBUS_STATUS_OK;
 }
 
+enum {
+  KORUZA_LEDS_STATE,
+  __KORUZA_LEDS_MAX,
+};
+
+static const struct blobmsg_policy koruza_leds_policy[__KORUZA_LEDS_MAX] = {
+  [KORUZA_LEDS_STATE] = { .name = "state", .type = BLOBMSG_TYPE_INT8 },
+};
+
+static int ubus_set_leds(struct ubus_context *ctx, struct ubus_object *obj,
+                         struct ubus_request_data *req, const char *method,
+                         struct blob_attr *msg)
+{
+  struct blob_attr *tb[__KORUZA_LEDS_MAX];
+
+  blobmsg_parse(koruza_leds_policy, __KORUZA_LEDS_MAX, tb, blob_data(msg), blob_len(msg));
+
+  if (!tb[KORUZA_LEDS_STATE]) {
+    return UBUS_STATUS_INVALID_ARGUMENT;
+  }
+
+  koruza_set_leds((int8_t) blobmsg_get_u8(tb[KORUZA_LEDS_STATE]));
+
+  return UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
@@ -206,6 +236,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("set_webcam_calibration", ubus_set_webcam_calibration, koruza_calibration_policy),
   UBUS_METHOD("set_distance", ubus_set_distance, koruza_distance_policy),
   UBUS_METHOD_NOARG("get_survey", ubus_get_survey),
+  UBUS_METHOD("set_leds", ubus_set_leds, koruza_leds_policy),
 };
 
 static struct ubus_object_type koruza_type =

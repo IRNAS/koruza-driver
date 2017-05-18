@@ -154,6 +154,7 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   uloop_timeout_set(&timer_survey, KORUZA_SURVEY_INTERVAL);
 
   // Initialize LEDs.
+  status.leds = 1;
   led_config.channel[0].gpionum = uci_get_int(uci, "koruza.@leds[0].gpio", 40);
   if (ws2811_init(&led_config) != WS2811_SUCCESS) {
     syslog(LOG_WARNING, "Failed to initialize LEDs.");
@@ -362,6 +363,13 @@ int koruza_update_sfp_leds()
 
   for (size_t i = 0; i < LED_COUNT; i++) {
     led_config.channel[0].leds[i] = color;
+  }
+
+  // Set brightness based on LED state.
+  if (status.leds) {
+    led_config.channel[0].brightness = 255;
+  } else {
+    led_config.channel[0].brightness = 0;
   }
 
   if (ws2811_render(&led_config) != WS2811_SUCCESS) {
@@ -666,4 +674,10 @@ void koruza_timer_survey_handler(struct uloop_timeout *timer)
   if (y_bin >= SURVEY_BINS) y_bin = SURVEY_BINS - 1;
 
   survey.data[y_bin][x_bin].rx_power = status.sfp.rx_power;
+}
+
+void koruza_set_leds(uint8_t leds)
+{
+  status.leds = leds;
+  koruza_update_sfp_leds();
 }

@@ -57,6 +57,7 @@ struct koruza_sfp_status {
 struct koruza_status {
   uint8_t connected;
   uint8_t gpio_reset;
+  uint8_t leds;
 
   struct koruza_error_report errors;
   struct koruza_motor_status motors;
@@ -81,6 +82,7 @@ int koruza_hard_reset();
 int koruza_update_status();
 int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y);
 int koruza_set_distance(uint32_t distance);
+void koruza_set_leds(uint8_t leds);
 const struct koruza_status *koruza_get_status();
 const struct koruza_survey *koruza_get_survey();
 
