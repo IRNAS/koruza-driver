@@ -187,6 +187,16 @@ static int ubus_get_survey(struct ubus_context *ctx, struct ubus_object *obj,
 
   blob_buf_init(&reply_buf, 0);
 
+  c = blobmsg_open_table(&reply_buf, "coverage");
+  blobmsg_add_u16(&reply_buf, "x", SURVEY_COVERAGE);
+  blobmsg_add_u16(&reply_buf, "y", SURVEY_COVERAGE);
+  blobmsg_close_table(&reply_buf, c);
+
+  c = blobmsg_open_table(&reply_buf, "bins");
+  blobmsg_add_u16(&reply_buf, "x", SURVEY_BINS);
+  blobmsg_add_u16(&reply_buf, "y", SURVEY_BINS);
+  blobmsg_close_table(&reply_buf, c);
+
   c = blobmsg_open_array(&reply_buf, "data");
   for (size_t row = 0; row < SURVEY_BINS; row++) {
     void *c_row = blobmsg_open_array(&reply_buf, NULL);
@@ -198,6 +208,15 @@ static int ubus_get_survey(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_close_array(&reply_buf, c);
 
   ubus_send_reply(ctx, req, reply_buf.head);
+
+  return UBUS_STATUS_OK;
+}
+
+static int ubus_reset_survey(struct ubus_context *ctx, struct ubus_object *obj,
+                             struct ubus_request_data *req, const char *method,
+                             struct blob_attr *msg)
+{
+  koruza_survey_reset();
 
   return UBUS_STATUS_OK;
 }
@@ -236,6 +255,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("set_webcam_calibration", ubus_set_webcam_calibration, koruza_calibration_policy),
   UBUS_METHOD("set_distance", ubus_set_distance, koruza_distance_policy),
   UBUS_METHOD_NOARG("get_survey", ubus_get_survey),
+  UBUS_METHOD_NOARG("reset_survey", ubus_reset_survey),
   UBUS_METHOD("set_leds", ubus_set_leds, koruza_leds_policy),
 };
 

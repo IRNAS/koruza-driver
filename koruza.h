@@ -84,6 +84,8 @@ int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y);
 int koruza_set_distance(uint32_t distance);
 void koruza_set_leds(uint8_t leds);
 const struct koruza_status *koruza_get_status();
+
+void koruza_survey_reset();
 const struct koruza_survey *koruza_get_survey();
 
 #endif

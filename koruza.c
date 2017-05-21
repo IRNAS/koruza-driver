@@ -99,7 +99,6 @@ static struct color_map led_color_map[] = {
 
 int koruza_update_sfp();
 int koruza_update_sfp_leds();
-void koruza_survey_reset();
 void koruza_serial_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
