@@ -34,7 +34,7 @@
 
 #define KORUZA_SFP_REFRESH_INTERVAL 100
 #define KORUZA_REFRESH_INTERVAL 500
-#define KORUZA_MCU_TIMEOUT 1000
+#define KORUZA_MCU_TIMEOUT 2000
 #define KORUZA_MCU_RESET_DELAY 120000
 #define KORUZA_SURVEY_INTERVAL 700
 
@@ -641,7 +641,9 @@ void koruza_timer_status_handler(struct uloop_timeout *timer)
   koruza_update_status();
 
   uloop_timeout_set(&timer_status, KORUZA_REFRESH_INTERVAL);
-  uloop_timeout_set(&timer_wait_reply, KORUZA_MCU_TIMEOUT);
+
+  if (!timer_wait_reply.pending)
+    uloop_timeout_set(&timer_wait_reply, KORUZA_MCU_TIMEOUT);
 }
 
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer)
