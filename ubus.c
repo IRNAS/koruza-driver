@@ -119,6 +119,13 @@ static int ubus_reboot(struct ubus_context *ctx, struct ubus_object *obj,
   return koruza_reboot() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+static int ubus_firmware_upgrade(struct ubus_context *ctx, struct ubus_object *obj,
+                                 struct ubus_request_data *req, const char *method,
+                                 struct blob_attr *msg)
+{
+  return koruza_firmware_upgrade() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
+}
+
 enum {
   KORUZA_CALIBRATION_X,
   KORUZA_CALIBRATION_Y,
@@ -251,6 +258,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
   UBUS_METHOD_NOARG("reboot", ubus_reboot),
+  UBUS_METHOD_NOARG("firmware_upgrade", ubus_firmware_upgrade),
   UBUS_METHOD_NOARG("get_status", ubus_get_status),
   UBUS_METHOD("set_webcam_calibration", ubus_set_webcam_calibration, koruza_calibration_policy),
   UBUS_METHOD("set_distance", ubus_set_distance, koruza_distance_policy),

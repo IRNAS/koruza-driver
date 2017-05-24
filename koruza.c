@@ -318,6 +318,18 @@ int koruza_reboot()
   return 0;
 }
 
+int koruza_firmware_upgrade()
+{
+  message_t msg;
+  message_init(&msg);
+  message_tlv_add_command(&msg, COMMAND_FIRMWARE_UPGRADE);
+  message_tlv_add_checksum(&msg);
+  serial_send_message(&msg);
+  message_free(&msg);
+
+  return 0;
+}
+
 int koruza_hard_reset()
 {
   if (gpio_export(status.gpio_reset) != 0) {
