@@ -160,6 +160,14 @@ message_result_t message_tlv_add_power_reading(message_t *message, uint16_t powe
   return message_tlv_add(message, TLV_POWER_READING, sizeof(uint16_t), (uint8_t*) &power);
 }
 
+message_result_t message_tlv_add_encoder_value(message_t *message, const tlv_encoder_value_t *value)
+{
+  tlv_encoder_value_t tmp;
+  tmp.x = htonl(value->x);
+  tmp.y = htonl(value->y);
+  return message_tlv_add(message, TLV_ENCODER_VALUE, sizeof(tlv_encoder_value_t), (uint8_t*) &tmp);
+}
+
 message_result_t message_tlv_add_sfp_calibration(message_t *message, const tlv_sfp_calibration_t *calibration)
 {
   tlv_sfp_calibration_t tmp;
@@ -247,6 +255,19 @@ message_result_t message_tlv_get_current_reading(const message_t *message, uint1
   }
 
   *current = ntohs(*current);
+
+  return MESSAGE_SUCCESS;
+}
+
+message_result_t message_tlv_get_encoder_value(const message_t *message, tlv_encoder_value_t *value)
+{
+  message_result_t result = message_tlv_get(message, TLV_ENCODER_VALUE, (uint8_t*) value, sizeof(tlv_encoder_value_t));
+  if (result != MESSAGE_SUCCESS) {
+    return result;
+  }
+
+  value->x = ntohl(value->x);
+  value->y = ntohl(value->y);
 
   return MESSAGE_SUCCESS;
 }

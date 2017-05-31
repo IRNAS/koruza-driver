@@ -224,6 +224,13 @@ void koruza_serial_message_handler(const message_t *message)
         }
       }
 
+      // Handle encoder value report.
+      tlv_encoder_value_t encoder_value;
+      if (message_tlv_get_encoder_value(message, &encoder_value) == MESSAGE_SUCCESS) {
+        status.motors.encoder_x = encoder_value.x;
+        status.motors.encoder_y = encoder_value.y;
+      }
+
       break;
     }
 

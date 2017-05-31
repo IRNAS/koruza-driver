@@ -37,6 +37,7 @@ typedef enum {
   TLV_SFP_CALIBRATION = 6,
   TLV_ERROR_REPORT = 7,
   TLV_POWER_READING = 8,
+  TLV_ENCODER_VALUE = 9,
 
   // Network communication TLVs.
   TLV_NET_HELLO = 100,
@@ -72,6 +73,14 @@ typedef struct {
   int32_t y;
   int32_t z;
 } tlv_motor_position_t;
+
+/**
+ * Contents of the encoder value TLV.
+ */
+typedef struct {
+  int32_t x;
+  int32_t y;
+} tlv_encoder_value_t;
 
 /**
  * Contents of the error report TLV.
@@ -210,6 +219,15 @@ message_result_t message_tlv_add_current_reading(message_t *message, uint16_t cu
 message_result_t message_tlv_add_power_reading(message_t *message, uint16_t power);
 
 /**
+ * Adds an encoder value TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param value Encoder value
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_encoder_value(message_t *message, const tlv_encoder_value_t *value);
+
+/**
  * Adds a SFP calibration TLV to a protocol message.
  *
  * @param message Destination message instance to add the TLV to
@@ -282,6 +300,15 @@ message_result_t message_tlv_get_error_report(const message_t *message, tlv_erro
  * @return Operation result code
  */
 message_result_t message_tlv_get_current_reading(const message_t *message, uint16_t *current);
+
+/**
+ * Find the first encoder value TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param value Destination encoder value variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_encoder_value(const message_t *message, tlv_encoder_value_t *value);
 
 /**
  * Find the first SFP calibration TLV in a message and copies it.
