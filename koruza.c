@@ -141,7 +141,14 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y", 25000);
 
   status.motors.x = uci_get_int(uci, "koruza.@motors[0].last_x", 0);
+  if (status.motors.x < -status.motors.range_x || status.motors.x > status.motors.range_x) {
+    status.motors.x = 0;
+  }
+
   status.motors.y = uci_get_int(uci, "koruza.@motors[0].last_y", 0);
+  if (status.motors.y < -status.motors.range_y || status.motors.y > status.motors.range_y) {
+    status.motors.y = 0;
+  }
 
   // Setup timer handlers.
   timer_status.cb = koruza_timer_status_handler;
@@ -211,9 +218,12 @@ void koruza_serial_message_handler(const message_t *message)
         status.motors.y = position.y;
         status.motors.z = position.z;
 
-        // Save stored position.
-        uci_set_int(koruza_uci, "koruza.@motors[0].last_x", status.motors.x);
-        uci_set_int(koruza_uci, "koruza.@motors[0].last_y", status.motors.y);
+        // Save stored position (when in range).
+        if (status.motors.x >= -status.motors.range_x && status.motors.x <= status.motors.range_x &&
+            status.motors.y >= -status.motors.range_y && status.motors.y <= status.motors.range_y) {
+          uci_set_int(koruza_uci, "koruza.@motors[0].last_x", status.motors.x);
+          uci_set_int(koruza_uci, "koruza.@motors[0].last_y", status.motors.y);
+        }
 
         // Commit changes.
         struct uci_ptr ptr;
