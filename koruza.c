@@ -138,7 +138,16 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance", 0);
 
   status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x", 25000);
+  if (status.motors.range_x <= 0) {
+    syslog(LOG_ERR, "Invalid range specified for X direction, defaulting to 25000.");
+    status.motors.range_x = 25000;
+  }
+
   status.motors.range_y = uci_get_int(uci, "koruza.@motors[0].range_y", 25000);
+  if (status.motors.range_y <= 0) {
+    syslog(LOG_ERR, "Invalid range specified for Y direction, defaulting to 25000.");
+    status.motors.range_y = 25000;
+  }
 
   status.motors.x = uci_get_int(uci, "koruza.@motors[0].last_x", 0);
   if (status.motors.x < -status.motors.range_x || status.motors.x > status.motors.range_x) {
@@ -223,6 +232,8 @@ void koruza_serial_message_handler(const message_t *message)
             status.motors.y >= -status.motors.range_y && status.motors.y <= status.motors.range_y) {
           uci_set_int(koruza_uci, "koruza.@motors[0].last_x", status.motors.x);
           uci_set_int(koruza_uci, "koruza.@motors[0].last_y", status.motors.y);
+        } else {
+          syslog(LOG_WARNING, "MCU sent an out-of-range motor position.");
         }
 
         // Commit changes.
