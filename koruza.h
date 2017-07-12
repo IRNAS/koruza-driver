@@ -57,6 +57,8 @@ struct koruza_sfp_status {
 };
 
 struct koruza_status {
+  char *serial_number;
+
   uint8_t connected;
   uint8_t gpio_reset;
   uint8_t leds;

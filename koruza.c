@@ -115,6 +115,12 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 
   koruza_survey_reset();
 
+  // Configure serial number or default to '0000' if not configured.
+  status.serial_number = uci_get_string(uci, "koruza.@unit[0].serial_number");
+  if (status.serial_number == NULL) {
+    status.serial_number = "0000";
+  }
+
   // Initialize calibration defaults.
   status.camera_calibration.port = uci_get_int(uci, "koruza.@webcam[0].port", 8080);
   status.camera_calibration.path = uci_get_string(uci, "koruza.@webcam[0].path");

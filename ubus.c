@@ -67,6 +67,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   void *c;
 
   blob_buf_init(&reply_buf, 0);
+  blobmsg_add_string(&reply_buf, "serial_number", status->serial_number);
   blobmsg_add_u8(&reply_buf, "connected", status->connected);
 
   c = blobmsg_open_table(&reply_buf, "leds");
