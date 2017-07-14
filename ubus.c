@@ -18,6 +18,7 @@
  */
 #include "ubus.h"
 #include "koruza.h"
+#include "network.h"
 
 #include <libubox/blobmsg.h>
 
@@ -64,6 +65,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
                            struct blob_attr *msg)
 {
   const struct koruza_status *status = koruza_get_status();
+  const struct network_status *net_status = network_get_status();
   void *c;
 
   blob_buf_init(&reply_buf, 0);
@@ -101,6 +103,12 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   c = blobmsg_open_table(&reply_buf, "sfp");
   blobmsg_add_u16(&reply_buf, "tx_power", status->sfp.tx_power);
   blobmsg_add_u16(&reply_buf, "rx_power", status->sfp.rx_power);
+  blobmsg_close_table(&reply_buf, c);
+
+  c = blobmsg_open_table(&reply_buf, "network");
+  blobmsg_add_string(&reply_buf, "interface", net_status->interface);
+  blobmsg_add_string(&reply_buf, "ip_address", net_status->ip_address);
+  blobmsg_add_u8(&reply_buf, "ready", net_status->ready);
   blobmsg_close_table(&reply_buf, c);
 
   ubus_send_reply(ctx, req, reply_buf.head);

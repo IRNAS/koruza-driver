@@ -27,7 +27,8 @@
  */
 struct network_device {
   uint8_t version;
-  const char *id;
+  char *id;
+  char *ip_address;
 
   // TODO: Protocol state.
 
@@ -35,6 +36,16 @@ struct network_device {
   struct avl_node avl;
 };
 
+/**
+ * Current network status.
+ */
+struct network_status {
+  char *interface;
+  char *ip_address;
+  uint8_t ready;
+};
+
 int network_init(struct uci_context *uci);
+const struct network_status *network_get_status();
 
 #endif

@@ -20,9 +20,12 @@
 #include "message.h"
 #include "configuration.h"
 
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +48,8 @@ static struct in6_addr multicast_group;
 static struct uloop_timeout timer_announce;
 // Currently selected pair.
 static struct network_device *neighbour;
+// Current network state.
+static struct network_status net_status;
 
 void network_message_received(struct uloop_fd *sock, unsigned int events);
 void network_announce_ourselves(struct uloop_timeout *timer);
@@ -53,6 +58,7 @@ int network_send_message(message_t *message);
 int network_init(struct uci_context *uci)
 {
   neighbour = NULL;
+  memset(&net_status, 0, sizeof(struct network_status));
 
   // Initialize the discovered units AVL tree.
   avl_init(&discovered_units, avl_strcmp, false, NULL);
@@ -60,13 +66,46 @@ int network_init(struct uci_context *uci)
   // Initialize multicast group address.
   inet_pton(AF_INET6, KORUZA_MULTICAST_GROUP, &multicast_group);
 
-  // Prepare multicast socket, listen for updates.
   char *interface = uci_get_string(uci, "koruza.@network[0].interface");
   if (!interface) {
     syslog(LOG_WARNING, "Network interface not configured. Skipping network initialization.");
     return 0;
   }
 
+  net_status.interface = strdup(interface);
+
+  // Discover interface IPv4 address.
+  struct ifaddrs *ifaddr, *ifa;
+  if (getifaddrs(&ifaddr) == -1) {
+    syslog(LOG_ERR, "Failed to discover interface IP address.");
+    free(interface);
+    return -1;
+  }
+
+  for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == NULL || strcmp(ifa->ifa_name, interface) != 0) {
+      continue;
+    }
+
+    // Get IPv4 address.
+    if (ifa->ifa_addr->sa_family == AF_INET) {
+      char host[NI_MAXHOST];
+      int s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+      if (s != 0) {
+        syslog(LOG_ERR, "Failed to discover interface IP address.");
+        freeifaddrs(ifaddr);
+        free(interface);
+        return -1;
+      }
+
+      net_status.ip_address = strdup(host);
+      break;
+    }
+  }
+
+  freeifaddrs(ifaddr);
+
+  // Prepare multicast socket, listen for updates.
   ad_socket.fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
   if (ad_socket.fd < 0) {
     syslog(LOG_ERR, "Failed to setup autodiscovery socket.");
@@ -119,9 +158,15 @@ int network_init(struct uci_context *uci)
   timer_announce.cb = network_announce_ourselves;
   uloop_timeout_set(&timer_announce, KORUZA_ANNOUNCE_INTERVAL);
 
-  syslog(LOG_INFO, "Initialized network.");
+  syslog(LOG_INFO, "Initialized network on interface %s (%s).", net_status.interface, net_status.ip_address);
+  net_status.ready = 1;
 
   return 0;
+}
+
+const struct network_status *network_get_status()
+{
+  return &net_status;
 }
 
 void network_message_received(struct uloop_fd *sock, unsigned int events)
