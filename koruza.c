@@ -99,6 +99,7 @@ static struct color_map led_color_map[] = {
 
 int koruza_update_sfp();
 int koruza_update_sfp_leds();
+int koruza_uci_commit();
 void koruza_serial_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
@@ -175,8 +176,8 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   uloop_timeout_set(&timer_survey, KORUZA_SURVEY_INTERVAL);
 
   // Initialize LEDs.
-  status.leds = 1;
-  led_config.channel[0].gpionum = uci_get_int(uci, "koruza.@leds[0].gpio", 40);
+  status.leds = uci_get_int(uci, "koruza.leds.status", 1);
+  led_config.channel[0].gpionum = uci_get_int(uci, "koruza.leds.gpio", 40);
   if (ws2811_init(&led_config) != WS2811_SUCCESS) {
     syslog(LOG_WARNING, "Failed to initialize LEDs.");
   } else {
@@ -243,12 +244,7 @@ void koruza_serial_message_handler(const message_t *message)
         }
 
         // Commit changes.
-        struct uci_ptr ptr;
-        if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
-            uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
-          syslog(LOG_ERR, "Failed to commit last motor position.");
-          return;
-        }
+        koruza_uci_commit();
       }
 
       // Handle encoder value report.
@@ -443,15 +439,8 @@ int koruza_update_status()
   return 0;
 }
 
-int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
+int koruza_uci_commit()
 {
-  status.camera_calibration.offset_x = offset_x;
-  status.camera_calibration.offset_y = offset_y;
-
-  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_x", offset_x);
-  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_y", offset_y);
-
-  // Commit changes.
   struct uci_ptr ptr;
   if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
       uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
@@ -462,21 +451,24 @@ int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
   return 0;
 }
 
+int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
+{
+  status.camera_calibration.offset_x = offset_x;
+  status.camera_calibration.offset_y = offset_y;
+
+  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_x", offset_x);
+  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_y", offset_y);
+
+  return koruza_uci_commit();
+}
+
 int koruza_set_distance(uint32_t distance)
 {
   status.camera_calibration.distance = distance;
 
   uci_set_int(koruza_uci, "koruza.@webcam[0].distance", distance);
 
-  // Commit changes.
-  struct uci_ptr ptr;
-  if (uci_lookup_ptr(koruza_uci, &ptr, "koruza", true) != UCI_OK ||
-      uci_commit(koruza_uci, &ptr.p, false) != UCI_OK) {
-    syslog(LOG_ERR, "Failed to commit updated distance.");
-    return 1;
-  }
-
-  return 0;
+  return koruza_uci_commit();
 }
 
 enum {
@@ -726,5 +718,11 @@ void koruza_timer_survey_handler(struct uloop_timeout *timer)
 void koruza_set_leds(uint8_t leds)
 {
   status.leds = leds;
+
+  // Persist LED configuration.
+  uci_set_string(koruza_uci, "koruza.leds", "leds");
+  uci_set_int(koruza_uci, "koruza.leds.status", leds);
+  koruza_uci_commit();
+
   koruza_update_sfp_leds();
 }
