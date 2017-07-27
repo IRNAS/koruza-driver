@@ -30,6 +30,7 @@
 #include "koruza.h"
 #include "ubus.h"
 #include "network.h"
+#include "upgrade.h"
 
 // Global ubus connection context.
 static struct ubus_context *ubus;
@@ -104,6 +105,11 @@ int main(int argc, char **argv)
 
   if (network_init(uci) != 0) {
     syslog(LOG_ERR, "Failed to initialize network.");
+    return -1;
+  }
+
+  if (upgrade_init(uci) != 0) {
+    syslog(LOG_ERR, "Failed to initialize upgrade service!");
     return -1;
   }
 

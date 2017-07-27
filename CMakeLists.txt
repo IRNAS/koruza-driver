@@ -37,6 +37,7 @@ koruza.c
 ubus.c
 configuration.c
 network.c
+upgrade.c
 main.c
 )
 

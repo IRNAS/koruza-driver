@@ -65,7 +65,7 @@ void serial_set_message_handler(frame_message_handler handler)
 
 int serial_init_device(const char *device)
 {
-  serial_ufd.fd = open(device, O_RDWR);
+  serial_ufd.fd = open(device, O_RDWR | O_CLOEXEC);
   if (serial_ufd.fd < 0) {
     syslog(LOG_ERR, "Failed to open serial device '%s'.", device);
     return -1;

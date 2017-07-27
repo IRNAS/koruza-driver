@@ -19,6 +19,7 @@
 #include "ubus.h"
 #include "koruza.h"
 #include "network.h"
+#include "upgrade.h"
 
 #include <libubox/blobmsg.h>
 
@@ -265,6 +266,13 @@ static int ubus_set_leds(struct ubus_context *ctx, struct ubus_object *obj,
   return UBUS_STATUS_OK;
 }
 
+static int ubus_upgrade(struct ubus_context *ctx, struct ubus_object *obj,
+                        struct ubus_request_data *req, const char *method,
+                        struct blob_attr *msg)
+{
+  return upgrade_start() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
@@ -276,6 +284,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD_NOARG("get_survey", ubus_get_survey),
   UBUS_METHOD_NOARG("reset_survey", ubus_reset_survey),
   UBUS_METHOD("set_leds", ubus_set_leds, koruza_leds_policy),
+  UBUS_METHOD_NOARG("upgrade", ubus_upgrade),
 };
 
 static struct ubus_object_type koruza_type =

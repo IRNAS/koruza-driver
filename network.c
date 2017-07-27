@@ -106,7 +106,7 @@ int network_init(struct uci_context *uci)
   freeifaddrs(ifaddr);
 
   // Prepare multicast socket, listen for updates.
-  ad_socket.fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+  ad_socket.fd = socket(AF_INET6, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP);
   if (ad_socket.fd < 0) {
     syslog(LOG_ERR, "Failed to setup autodiscovery socket.");
     free(interface);
