@@ -100,7 +100,8 @@ static struct color_map led_color_map[] = {
 int koruza_update_sfp();
 int koruza_update_sfp_leds();
 int koruza_uci_commit();
-void koruza_serial_message_handler(const message_t *message);
+void koruza_serial_motors_message_handler(const message_t *message);
+void koruza_serial_accelerometer_message_handler(const message_t *message);
 void koruza_timer_status_handler(struct uloop_timeout *timer);
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
@@ -112,7 +113,8 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
   koruza_uci = uci;
 
   memset(&status, 0, sizeof(struct koruza_status));
-  serial_set_message_handler(koruza_serial_message_handler);
+  serial_set_message_handler(DEVICE_MOTORS, koruza_serial_motors_message_handler);
+  serial_set_message_handler(DEVICE_ACCELEROMETER, koruza_serial_accelerometer_message_handler);
 
   koruza_survey_reset();
 
@@ -203,7 +205,7 @@ const struct koruza_survey *koruza_get_survey()
   return &survey;
 }
 
-void koruza_serial_message_handler(const message_t *message)
+void koruza_serial_motors_message_handler(const message_t *message)
 {
   // Check if this is a reply or a command message.
   tlv_reply_t reply = 0;
@@ -218,10 +220,10 @@ void koruza_serial_message_handler(const message_t *message)
     case REPLY_STATUS_REPORT: {
       uloop_timeout_cancel(&timer_wait_reply);
 
-      if (!status.connected) {
+      if (!status.motors.connected) {
         // Was not considered connected until now.
-        syslog(LOG_INFO, "Detected KORUZA MCU on the configured serial port.");
-        status.connected = 1;
+        syslog(LOG_INFO, "Detected KORUZA motor driver on the configured serial port.");
+        status.motors.connected = 1;
 
         // Restore motor position.
         koruza_restore_motor();
@@ -281,6 +283,42 @@ void koruza_serial_message_handler(const message_t *message)
   }
 }
 
+void koruza_serial_accelerometer_message_handler(const message_t *message)
+{
+  // Check if this is a reply or a command message.
+  tlv_reply_t reply = 0;
+  tlv_command_t command = 0;
+  message_tlv_get_reply(message, &reply);
+  message_tlv_get_command(message, &command);
+  if (!reply && !command) {
+    return;
+  }
+
+  switch (reply) {
+    case REPLY_STATUS_REPORT: {
+      if (!status.accelerometer.connected) {
+        // Was not considered connected until now.
+        syslog(LOG_INFO, "Detected accelerometer driver on the configured serial port.");
+        status.accelerometer.connected = 1;
+      }
+
+      // Handle accelerometer value report.
+      tlv_accelerometer_value_t accelerometer_value;
+      if (message_tlv_get_accelerometer_value(message, &accelerometer_value) == MESSAGE_SUCCESS) {
+        status.accelerometer.ax = accelerometer_value.ax;
+        status.accelerometer.ay = accelerometer_value.ay;
+        status.accelerometer.az = accelerometer_value.az;
+      }
+
+      break;
+    }
+
+    default: {
+      // Ignore.
+    }
+  }
+}
+
 int koruza_restore_motor()
 {
   tlv_motor_position_t position;
@@ -293,14 +331,14 @@ int koruza_restore_motor()
   message_tlv_add_command(&msg, COMMAND_RESTORE_MOTOR);
   message_tlv_add_motor_position(&msg, &position);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
   message_free(&msg);
   return 0;
 }
 
 int koruza_move_motor(int32_t x, int32_t y, int32_t z)
 {
-  if (!status.connected) {
+  if (!status.motors.connected) {
     return -1;
   }
 
@@ -314,7 +352,7 @@ int koruza_move_motor(int32_t x, int32_t y, int32_t z)
   message_tlv_add_command(&msg, COMMAND_MOVE_MOTOR);
   message_tlv_add_motor_position(&msg, &position);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
   message_free(&msg);
 
   return 0;
@@ -322,7 +360,7 @@ int koruza_move_motor(int32_t x, int32_t y, int32_t z)
 
 int koruza_homing()
 {
-  if (!status.connected) {
+  if (!status.motors.connected) {
     return -1;
   }
 
@@ -330,7 +368,7 @@ int koruza_homing()
   message_init(&msg);
   message_tlv_add_command(&msg, COMMAND_HOMING);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
   message_free(&msg);
 
   return 0;
@@ -342,7 +380,7 @@ int koruza_reboot()
   message_init(&msg);
   message_tlv_add_command(&msg, COMMAND_REBOOT);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
   message_free(&msg);
 
   return 0;
@@ -354,7 +392,7 @@ int koruza_firmware_upgrade()
   message_init(&msg);
   message_tlv_add_command(&msg, COMMAND_FIRMWARE_UPGRADE);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
   message_free(&msg);
 
   return 0;
@@ -433,7 +471,8 @@ int koruza_update_status()
   message_tlv_add_command(&msg, COMMAND_GET_STATUS);
   message_tlv_add_power_reading(&msg, status.sfp.rx_power);
   message_tlv_add_checksum(&msg);
-  serial_send_message(&msg);
+  serial_send_message(DEVICE_MOTORS, &msg);
+  serial_send_message(DEVICE_ACCELEROMETER, &msg);
   message_free(&msg);
 
   return 0;
@@ -683,12 +722,12 @@ void koruza_timer_sfp_status_handler(struct uloop_timeout *timer)
 
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer)
 {
-  if (!status.connected) {
+  if (!status.motors.connected) {
     return;
   }
 
-  syslog(LOG_WARNING, "KORUZA MCU has been disconnected.");
-  status.connected = 0;
+  syslog(LOG_WARNING, "KORUZA motor driver has been disconnected.");
+  status.motors.connected = 0;
 }
 
 void koruza_survey_reset()
@@ -700,7 +739,7 @@ void koruza_timer_survey_handler(struct uloop_timeout *timer)
 {
   uloop_timeout_set(timer, KORUZA_SURVEY_INTERVAL);
 
-  if (!status.connected) {
+  if (!status.motors.connected) {
     return;
   }
 

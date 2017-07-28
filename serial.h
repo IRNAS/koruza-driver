@@ -24,8 +24,16 @@
 #include "message.h"
 #include "frame.h"
 
+/**
+ * Supported devices.
+ */
+typedef enum {
+  DEVICE_MOTORS,
+  DEVICE_ACCELEROMETER
+} serial_device_t;
+
 int serial_init(struct uci_context *uci);
-int serial_send_message(const message_t *message);
-void serial_set_message_handler(frame_message_handler handler);
+int serial_send_message(serial_device_t device, const message_t *message);
+void serial_set_message_handler(serial_device_t device, frame_message_handler handler);
 
 #endif

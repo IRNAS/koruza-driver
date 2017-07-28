@@ -28,11 +28,15 @@
 #define SURVEY_COVERAGE 10000
 
 struct koruza_motor_status {
+  uint8_t connected;
+
   int32_t x;
   int32_t y;
   int32_t z;
+
   int32_t range_x;
   int32_t range_y;
+
   int32_t encoder_x;
   int32_t encoder_y;
 };
@@ -56,15 +60,23 @@ struct koruza_sfp_status {
   uint16_t rx_power;
 };
 
+struct koruza_accelerometer_status {
+  uint8_t connected;
+
+  int32_t ax;
+  int32_t ay;
+  int32_t az;
+};
+
 struct koruza_status {
   char *serial_number;
 
-  uint8_t connected;
   uint8_t gpio_reset;
   uint8_t leds;
 
   struct koruza_error_report errors;
   struct koruza_motor_status motors;
+  struct koruza_accelerometer_status accelerometer;
   struct koruza_camera_calibration camera_calibration;
   struct koruza_sfp_status sfp;
 };

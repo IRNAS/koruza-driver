@@ -71,7 +71,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
 
   blob_buf_init(&reply_buf, 0);
   blobmsg_add_string(&reply_buf, "serial_number", status->serial_number);
-  blobmsg_add_u8(&reply_buf, "connected", status->connected);
+  blobmsg_add_u8(&reply_buf, "connected", status->motors.connected);
 
   c = blobmsg_open_table(&reply_buf, "leds");
   blobmsg_add_u8(&reply_buf, "state", status->leds);
@@ -82,6 +82,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "motors");
+  blobmsg_add_u8(&reply_buf, "connected", status->motors.connected);
   blobmsg_add_u32(&reply_buf, "x", status->motors.x);
   blobmsg_add_u32(&reply_buf, "y", status->motors.y);
   blobmsg_add_u32(&reply_buf, "z", status->motors.z);
@@ -89,6 +90,13 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "range_y", status->motors.range_y);
   blobmsg_add_u32(&reply_buf, "encoder_x", status->motors.encoder_x);
   blobmsg_add_u32(&reply_buf, "encoder_y", status->motors.encoder_y);
+  blobmsg_close_table(&reply_buf, c);
+
+  c = blobmsg_open_table(&reply_buf, "accelerometer");
+  blobmsg_add_u8(&reply_buf, "connected", status->accelerometer.connected);
+  blobmsg_add_u32(&reply_buf, "ax", status->accelerometer.ax);
+  blobmsg_add_u32(&reply_buf, "ay", status->accelerometer.ay);
+  blobmsg_add_u32(&reply_buf, "az", status->accelerometer.az);
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "camera_calibration");

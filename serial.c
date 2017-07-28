@@ -31,51 +31,100 @@
 #include <string.h>
 #include <errno.h>
 
-// Serial device uloop file descriptor wrapper.
-static struct uloop_fd serial_ufd;
-// Frame parser.
-static parser_t parser;
+struct serial_device {
+  uint8_t ready;
+  // Serial device uloop file descriptor wrapper.
+  struct uloop_fd ufd;
+  // Frame parser.
+  parser_t parser;
+};
 
-int serial_init_device(const char *device);
+static struct serial_device device_motors;
+static struct serial_device device_accelerometer;
+
+int serial_init_device(const char *device, struct serial_device *cfg);
+struct serial_device *serial_get_device(serial_device_t device);
+struct serial_device *serial_get_device_fd(int fd);
 void serial_fd_handler(struct uloop_fd *ufd, unsigned int events);
 
 int serial_init(struct uci_context *uci)
 {
   int result = 0;
-  serial_ufd.fd = -1;
-  frame_parser_init(&parser);
 
-  // Read device from configuration.
+  // Motors MCU.
   char *device = uci_get_string(uci, "koruza.@mcu[0].device");
   if (device != NULL) {
-    result = serial_init_device(device);
+    result = serial_init_device(device, &device_motors);
     free(device);
   } else {
     // Fallback to default device name.
-    result = serial_init_device("/dev/ttyS1");
+    result = serial_init_device("/dev/ttyS1", &device_motors);
   }
 
-  return result;
+  if (result != 0) {
+    return result;
+  }
+
+  // Accelerometer MCU (can be disconnected).
+  device = uci_get_string(uci, "koruza.@accelerometer[0].device");
+  if (device != NULL) {
+    result = serial_init_device(device, &device_accelerometer);
+    free(device);
+  } else {
+    // Fallback to default device name.
+    result = serial_init_device("/dev/ttyUSB0", &device_accelerometer);
+  }
+
+  return 0;
 }
 
-void serial_set_message_handler(frame_message_handler handler)
+struct serial_device *serial_get_device(serial_device_t device)
 {
-  parser.handler = handler;
+  switch (device) {
+    case DEVICE_MOTORS: return &device_motors;
+    case DEVICE_ACCELEROMETER: return &device_accelerometer;
+    default: return NULL;
+  }
 }
 
-int serial_init_device(const char *device)
+struct serial_device *serial_get_device_fd(int fd)
 {
-  serial_ufd.fd = open(device, O_RDWR | O_CLOEXEC);
-  if (serial_ufd.fd < 0) {
+  if (fd == device_motors.ufd.fd) {
+    return &device_motors;
+  } else if (fd == device_accelerometer.ufd.fd) {
+    return &device_accelerometer;
+  } else {
+    return NULL;
+  }
+}
+
+void serial_set_message_handler(serial_device_t device, frame_message_handler handler)
+{
+  struct serial_device *cfg = serial_get_device(device);
+  if (!cfg) {
+    syslog(LOG_ERR, "Failed to set message handler for serial device %d", device);
+    return;
+  }
+
+  cfg->parser.handler = handler;
+}
+
+int serial_init_device(const char *device, struct serial_device *cfg)
+{
+  cfg->ready = 0;
+  frame_parser_init(&cfg->parser);
+
+  cfg->ufd.fd = open(device, O_RDWR | O_CLOEXEC);
+  if (cfg->ufd.fd < 0) {
     syslog(LOG_ERR, "Failed to open serial device '%s'.", device);
     return -1;
   }
 
   struct termios serial_tio;
-  if (tcgetattr(serial_ufd.fd, &serial_tio) < 0) {
+  if (tcgetattr(cfg->ufd.fd, &serial_tio) < 0) {
     syslog(LOG_ERR, "Failed to get configuration for serial device '%s': %s (%d)",
       device, strerror(errno), errno);
-    close(serial_ufd.fd);
+    close(cfg->ufd.fd);
     return -1;
   }
 
@@ -83,37 +132,50 @@ int serial_init_device(const char *device)
   cfsetispeed(&serial_tio, B115200);
   cfsetospeed(&serial_tio, B115200);
 
-  if (tcsetattr(serial_ufd.fd, TCSAFLUSH, &serial_tio) < 0) {
+  if (tcsetattr(cfg->ufd.fd, TCSAFLUSH, &serial_tio) < 0) {
     syslog(LOG_ERR, "Failed to configure serial device '%s': %s (%d)",
       device, strerror(errno), errno);
-    close(serial_ufd.fd);
+    close(cfg->ufd.fd);
     return -1;
   }
 
-  serial_ufd.cb = serial_fd_handler;
+  cfg->ready = 1;
+  cfg->ufd.cb = serial_fd_handler;
 
-  uloop_fd_add(&serial_ufd, ULOOP_READ);
+  uloop_fd_add(&cfg->ufd, ULOOP_READ);
+
+  syslog(LOG_INFO, "Initialized serial device '%s'.", device);
 
   return 0;
 }
 
 void serial_fd_handler(struct uloop_fd *ufd, unsigned int events)
 {
-  (void) ufd;
+  struct serial_device *cfg = serial_get_device_fd(ufd->fd);
+  if (!cfg || !cfg->ready) {
+    syslog(LOG_ERR, "Failed to handle message from non-ready serial fd %d", ufd->fd);
+    return;
+  }
 
   uint8_t buffer[1024];
-  ssize_t size = read(serial_ufd.fd, buffer, sizeof(buffer));
+  ssize_t size = read(cfg->ufd.fd, buffer, sizeof(buffer));
   if (size < 0) {
     syslog(LOG_ERR, "Failed to read from serial device.");
     return;
   }
 
-  frame_parser_push_buffer(&parser, buffer, size);
+  frame_parser_push_buffer(&cfg->parser, buffer, size);
 }
 
-int serial_send_message(const message_t *message)
+int serial_send_message(serial_device_t device, const message_t *message)
 {
-  if (serial_ufd.fd < 0) {
+  struct serial_device *cfg = serial_get_device(device);
+  if (!cfg || !cfg->ready) {
+    syslog(LOG_ERR, "Failed to send message to non-ready serial device %d", device);
+    return -1;
+  }
+
+  if (cfg->ufd.fd < 0) {
     return -1;
   }
 
@@ -125,7 +187,7 @@ int serial_send_message(const message_t *message)
 
   size_t offset = 0;
   while (offset < size) {
-    ssize_t written = write(serial_ufd.fd, &buffer[offset], size - offset);
+    ssize_t written = write(cfg->ufd.fd, &buffer[offset], size - offset);
     if (written < 0) {
       syslog(LOG_ERR, "Failed to write frame (%ld bytes) to serial device: %s (%d)",
         (long int) size, strerror(errno), errno);

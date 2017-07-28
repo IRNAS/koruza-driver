@@ -38,6 +38,8 @@ typedef enum {
   TLV_ERROR_REPORT = 7,
   TLV_POWER_READING = 8,
   TLV_ENCODER_VALUE = 9,
+  TLV_ACCELEROMETER_VALUE = 10,
+  TLV_GYROSCOPE_VALUE = 11,
 
   // Network communication TLVs.
   TLV_NET_HELLO = 100,
@@ -81,6 +83,24 @@ typedef struct {
   int32_t x;
   int32_t y;
 } tlv_encoder_value_t;
+
+/**
+ * Contents of the accelerometer value TLV.
+ */
+typedef struct {
+  int32_t ax;
+  int32_t ay;
+  int32_t az;
+} tlv_accelerometer_value_t;
+
+/**
+ * Contents of the gyroscope value TLV.
+ */
+typedef struct {
+  int32_t gx;
+  int32_t gy;
+  int32_t gz;
+} tlv_gyroscope_value_t;
 
 /**
  * Contents of the error report TLV.
@@ -228,6 +248,24 @@ message_result_t message_tlv_add_power_reading(message_t *message, uint16_t powe
 message_result_t message_tlv_add_encoder_value(message_t *message, const tlv_encoder_value_t *value);
 
 /**
+ * Adds an accelerometer value TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param value Accelerometer value
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_accelerometer_value(message_t *message, const tlv_accelerometer_value_t *value);
+
+/**
+ * Adds an gyroscope value TLV to a protocol message.
+ *
+ * @param message Destination message instance to add the TLV to
+ * @param value Gyroscope value
+ * @return Operation result code
+ */
+message_result_t message_tlv_add_gyroscope_value(message_t *message, const tlv_gyroscope_value_t *value);
+
+/**
  * Adds a SFP calibration TLV to a protocol message.
  *
  * @param message Destination message instance to add the TLV to
@@ -309,6 +347,24 @@ message_result_t message_tlv_get_current_reading(const message_t *message, uint1
  * @return Operation result code
  */
 message_result_t message_tlv_get_encoder_value(const message_t *message, tlv_encoder_value_t *value);
+
+/**
+ * Find the first accelerometer value TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param value Destination accelerometer value variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_accelerometer_value(const message_t *message, tlv_accelerometer_value_t *value);
+
+/**
+ * Find the first gyroscope value TLV in a message and copies it.
+ *
+ * @param message Message instance to get the TLV from
+ * @param value Destination gyroscope value variable
+ * @return Operation result code
+ */
+message_result_t message_tlv_get_gyroscope_value(const message_t *message, tlv_gyroscope_value_t *value);
 
 /**
  * Find the first SFP calibration TLV in a message and copies it.
