@@ -471,8 +471,15 @@ int koruza_update_status()
   message_tlv_add_command(&msg, COMMAND_GET_STATUS);
   message_tlv_add_power_reading(&msg, status.sfp.rx_power);
   message_tlv_add_checksum(&msg);
-  serial_send_message(DEVICE_MOTORS, &msg);
-  serial_send_message(DEVICE_ACCELEROMETER, &msg);
+
+  if (serial_send_message(DEVICE_MOTORS, &msg) != 0) {
+    status.motors.connected = 0;
+  }
+
+  if (serial_send_message(DEVICE_ACCELEROMETER, &msg) != 0) {
+    status.accelerometer.connected = 0;
+  }
+
   message_free(&msg);
 
   return 0;
