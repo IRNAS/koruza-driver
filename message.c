@@ -168,22 +168,19 @@ message_result_t message_tlv_add_encoder_value(message_t *message, const tlv_enc
   return message_tlv_add(message, TLV_ENCODER_VALUE, sizeof(tlv_encoder_value_t), (uint8_t*) &tmp);
 }
 
-message_result_t message_tlv_add_accelerometer_value(message_t *message, const tlv_accelerometer_value_t *value)
+message_result_t message_tlv_add_vibration_value(message_t *message, const tlv_vibration_value_t *value)
 {
-  tlv_accelerometer_value_t tmp;
-  tmp.ax = htonl(value->ax);
-  tmp.ay = htonl(value->ay);
-  tmp.az = htonl(value->az);
-  return message_tlv_add(message, TLV_ACCELEROMETER_VALUE, sizeof(tlv_accelerometer_value_t), (uint8_t*) &tmp);
-}
+  tlv_vibration_value_t tmp;
+  for (size_t i = 0; i < 4; i++) {
+    tmp.avg_x[i] = htonl(value->avg_x[i]);
+    tmp.avg_y[i] = htonl(value->avg_y[i]);
+    tmp.avg_z[i] = htonl(value->avg_z[i]);
 
-message_result_t message_tlv_add_gyroscope_value(message_t *message, const tlv_gyroscope_value_t *value)
-{
-  tlv_gyroscope_value_t tmp;
-  tmp.gx = htonl(value->gx);
-  tmp.gy = htonl(value->gy);
-  tmp.gz = htonl(value->gz);
-  return message_tlv_add(message, TLV_GYROSCOPE_VALUE, sizeof(tlv_gyroscope_value_t), (uint8_t*) &tmp);
+    tmp.max_x[i] = htonl(value->max_x[i]);
+    tmp.max_y[i] = htonl(value->max_y[i]);
+    tmp.max_z[i] = htonl(value->max_z[i]);
+  }
+  return message_tlv_add(message, TLV_VIBRATION_VALUE, sizeof(tlv_vibration_value_t), (uint8_t*) &tmp);
 }
 
 message_result_t message_tlv_add_sfp_calibration(message_t *message, const tlv_sfp_calibration_t *calibration)
@@ -290,32 +287,23 @@ message_result_t message_tlv_get_encoder_value(const message_t *message, tlv_enc
   return MESSAGE_SUCCESS;
 }
 
-message_result_t message_tlv_get_accelerometer_value(const message_t *message, tlv_accelerometer_value_t *value)
+message_result_t message_tlv_get_vibration_value(const message_t *message, tlv_vibration_value_t *value)
 {
-  message_result_t result = message_tlv_get(message, TLV_ACCELEROMETER_VALUE, (uint8_t*) value,
-                                            sizeof(tlv_accelerometer_value_t));
+  message_result_t result = message_tlv_get(message, TLV_VIBRATION_VALUE, (uint8_t*) value,
+                                            sizeof(tlv_vibration_value_t));
   if (result != MESSAGE_SUCCESS) {
     return result;
   }
 
-  value->ax = ntohl(value->ax);
-  value->ay = ntohl(value->ay);
-  value->az = ntohl(value->az);
+  for (size_t i = 0; i < 4; i++) {
+    value->avg_x[i] = ntohl(value->avg_x[i]);
+    value->avg_y[i] = ntohl(value->avg_y[i]);
+    value->avg_z[i] = ntohl(value->avg_z[i]);
 
-  return MESSAGE_SUCCESS;
-}
-
-message_result_t message_tlv_get_gyroscope_value(const message_t *message, tlv_gyroscope_value_t *value)
-{
-  message_result_t result = message_tlv_get(message, TLV_GYROSCOPE_VALUE, (uint8_t*) value,
-                                            sizeof(tlv_gyroscope_value_t));
-  if (result != MESSAGE_SUCCESS) {
-    return result;
+    value->max_x[i] = ntohl(value->max_x[i]);
+    value->max_y[i] = ntohl(value->max_y[i]);
+    value->max_z[i] = ntohl(value->max_z[i]);
   }
-
-  value->gx = ntohl(value->gx);
-  value->gy = ntohl(value->gy);
-  value->gz = ntohl(value->gz);
 
   return MESSAGE_SUCCESS;
 }

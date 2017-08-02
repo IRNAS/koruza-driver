@@ -67,7 +67,7 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
 {
   const struct koruza_status *status = koruza_get_status();
   const struct network_status *net_status = network_get_status();
-  void *c;
+  void *c, *d;
 
   blob_buf_init(&reply_buf, 0);
   blobmsg_add_string(&reply_buf, "serial_number", status->serial_number);
@@ -94,9 +94,43 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
 
   c = blobmsg_open_table(&reply_buf, "accelerometer");
   blobmsg_add_u8(&reply_buf, "connected", status->accelerometer.connected);
-  blobmsg_add_u32(&reply_buf, "ax", status->accelerometer.ax);
-  blobmsg_add_u32(&reply_buf, "ay", status->accelerometer.ay);
-  blobmsg_add_u32(&reply_buf, "az", status->accelerometer.az);
+
+  d = blobmsg_open_array(&reply_buf, "avg_x");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_x[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  d = blobmsg_open_array(&reply_buf, "avg_y");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_y[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  d = blobmsg_open_array(&reply_buf, "avg_z");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_z[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  d = blobmsg_open_array(&reply_buf, "max_x");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_x[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  d = blobmsg_open_array(&reply_buf, "max_y");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_y[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  d = blobmsg_open_array(&reply_buf, "max_z");
+  for (size_t i = 0; i < 4; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_z[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "camera_calibration");

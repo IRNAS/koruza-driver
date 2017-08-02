@@ -303,11 +303,15 @@ void koruza_serial_accelerometer_message_handler(const message_t *message)
       }
 
       // Handle accelerometer value report.
-      tlv_accelerometer_value_t accelerometer_value;
-      if (message_tlv_get_accelerometer_value(message, &accelerometer_value) == MESSAGE_SUCCESS) {
-        status.accelerometer.ax = accelerometer_value.ax;
-        status.accelerometer.ay = accelerometer_value.ay;
-        status.accelerometer.az = accelerometer_value.az;
+      tlv_vibration_value_t vibration_value;
+      if (message_tlv_get_vibration_value(message, &vibration_value) == MESSAGE_SUCCESS) {
+        memcpy(status.accelerometer.avg_x, vibration_value.avg_x, sizeof(vibration_value.avg_x));
+        memcpy(status.accelerometer.avg_y, vibration_value.avg_y, sizeof(vibration_value.avg_y));
+        memcpy(status.accelerometer.avg_z, vibration_value.avg_z, sizeof(vibration_value.avg_z));
+
+        memcpy(status.accelerometer.max_x, vibration_value.max_x, sizeof(vibration_value.max_x));
+        memcpy(status.accelerometer.max_y, vibration_value.max_y, sizeof(vibration_value.max_y));
+        memcpy(status.accelerometer.max_z, vibration_value.max_z, sizeof(vibration_value.max_z));
       }
 
       break;

@@ -63,9 +63,13 @@ struct koruza_sfp_status {
 struct koruza_accelerometer_status {
   uint8_t connected;
 
-  int32_t ax;
-  int32_t ay;
-  int32_t az;
+  int32_t avg_x[4];
+  int32_t avg_y[4];
+  int32_t avg_z[4];
+
+  int32_t max_x[4];
+  int32_t max_y[4];
+  int32_t max_z[4];
 };
 
 struct koruza_status {
