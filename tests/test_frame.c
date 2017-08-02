@@ -44,10 +44,10 @@ static void validate_message_handler(const message_t *message)
     parsed_position.x, parsed_position.y, parsed_position.z
   );
 
-  if (parsed_command != COMMAND_MOVE_MOTOR ||
-      parsed_position.x != 10 ||
-      parsed_position.y != 20 ||
-      parsed_position.z != -15) {
+  if (parsed_command != COMMAND_RESTORE_MOTOR ||
+      parsed_position.x != -18004 ||
+      parsed_position.y != -18009 ||
+      parsed_position.z != 0) {
     printf("Parsed values are invalid.\n");
     exit(1);
   }
@@ -59,8 +59,8 @@ int main()
 {
   message_t msg;
   message_init(&msg);
-  message_tlv_add_command(&msg, COMMAND_MOVE_MOTOR);
-  tlv_motor_position_t position = {10, 20, -15};
+  message_tlv_add_command(&msg, COMMAND_RESTORE_MOTOR);
+  tlv_motor_position_t position = {-18004, -18009, 0};
   message_tlv_add_motor_position(&msg, &position);
   message_tlv_add_checksum(&msg);
 
@@ -71,6 +71,12 @@ int main()
     printf("Failed to frame message!\n");
     return -1;
   }
+
+  printf("Framed message:\n");
+  for (size_t j = 0; j < frame_size; j++) {
+    printf("%02X%s", frame[j], (j < frame_size - 1) ? " " : "");
+  }
+  printf("\n");
 
   // Parse framed message.
   parser_t parser;

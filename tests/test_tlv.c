@@ -24,8 +24,8 @@ int main()
 {
   message_t msg;
   message_init(&msg);
-  message_tlv_add_command(&msg, COMMAND_MOVE_MOTOR);
-  tlv_motor_position_t position = {10, 20, -15};
+  message_tlv_add_command(&msg, COMMAND_RESTORE_MOTOR);
+  tlv_motor_position_t position = {-18004, -18009, 0};
   message_tlv_add_motor_position(&msg, &position);
   message_tlv_add_checksum(&msg);
 
@@ -72,7 +72,7 @@ int main()
     parsed_position.x, parsed_position.y, parsed_position.z
   );
 
-  if (parsed_command != COMMAND_MOVE_MOTOR ||
+  if (parsed_command != COMMAND_RESTORE_MOTOR ||
       parsed_position.x != position.x ||
       parsed_position.y != position.y ||
       parsed_position.z != position.z) {

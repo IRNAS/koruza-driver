@@ -3,18 +3,20 @@ cmake_minimum_required(VERSION 2.6)
 project(koruza-driver C)
 add_definitions(-Os -Wall -Werror --std=gnu99 -Wmissing-declarations -g3)
 
-find_path(ubus_include_dir libubus.h)
-include_directories(${ubus_include_dir})
+if(NOT ONLY_TESTS)
+  find_path(ubus_include_dir libubus.h)
+  include_directories(${ubus_include_dir})
 
-find_path(ubox_include_dir libubox/usock.h)
-include_directories(${ubox_include_dir})
+  find_path(ubox_include_dir libubox/usock.h)
+  include_directories(${ubox_include_dir})
 
-find_path(uci_include_dir uci.h)
-include_directories(${uci_include_dir})
+  find_path(uci_include_dir uci.h)
+  include_directories(${uci_include_dir})
 
-find_library(ubus_library NAMES ubus)
-find_library(ubox_library NAMES ubox)
-find_library(uci_library NAMES uci)
+  find_library(ubus_library NAMES ubus)
+  find_library(ubox_library NAMES ubox)
+  find_library(uci_library NAMES uci)
+endif(NOT ONLY_TESTS)
 
 set(COMMON_SOURCES
 message.c
