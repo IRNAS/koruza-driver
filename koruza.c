@@ -241,12 +241,12 @@ void koruza_serial_motors_message_handler(const message_t *message)
             status.motors.y >= -status.motors.range_y && status.motors.y <= status.motors.range_y) {
           uci_set_int(koruza_uci, "koruza.@motors[0].last_x", status.motors.x);
           uci_set_int(koruza_uci, "koruza.@motors[0].last_y", status.motors.y);
+
+          // Commit changes.
+          koruza_uci_commit();
         } else {
           syslog(LOG_WARNING, "MCU sent an out-of-range motor position.");
         }
-
-        // Commit changes.
-        koruza_uci_commit();
       }
 
       // Handle encoder value report.
