@@ -107,6 +107,11 @@ void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
 void koruza_timer_survey_handler(struct uloop_timeout *timer);
 
+void koruza_compute_accelerometer_statistics_item(struct accelerometer_statistics_item *item);
+void koruza_update_accelerometer_statistics_item(struct accelerometer_statistics_item *item,
+                                                 float avg,
+                                                 float max);
+
 int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
 {
   koruza_ubus = ubus;
@@ -305,13 +310,17 @@ void koruza_serial_accelerometer_message_handler(const message_t *message)
       // Handle accelerometer value report.
       tlv_vibration_value_t vibration_value;
       if (message_tlv_get_vibration_value(message, &vibration_value) == MESSAGE_SUCCESS) {
-        memcpy(status.accelerometer.avg_x, vibration_value.avg_x, sizeof(vibration_value.avg_x));
-        memcpy(status.accelerometer.avg_y, vibration_value.avg_y, sizeof(vibration_value.avg_y));
-        memcpy(status.accelerometer.avg_z, vibration_value.avg_z, sizeof(vibration_value.avg_z));
-
-        memcpy(status.accelerometer.max_x, vibration_value.max_x, sizeof(vibration_value.max_x));
-        memcpy(status.accelerometer.max_y, vibration_value.max_y, sizeof(vibration_value.max_y));
-        memcpy(status.accelerometer.max_z, vibration_value.max_z, sizeof(vibration_value.max_z));
+        for (size_t i = 0; i < 4; i++) {
+          koruza_update_accelerometer_statistics_item(&status.accelerometer.x[i],
+                                                      vibration_value.avg_x[i],
+                                                      vibration_value.max_x[i]);
+          koruza_update_accelerometer_statistics_item(&status.accelerometer.y[i],
+                                                      vibration_value.avg_y[i],
+                                                      vibration_value.max_y[i]);
+          koruza_update_accelerometer_statistics_item(&status.accelerometer.z[i],
+                                                      vibration_value.avg_z[i],
+                                                      vibration_value.max_z[i]);
+        }
       }
 
       break;
@@ -775,4 +784,51 @@ void koruza_set_leds(uint8_t leds)
   koruza_uci_commit();
 
   koruza_update_sfp_leds();
+}
+
+void koruza_update_accelerometer_statistics_item(struct accelerometer_statistics_item *item,
+                                                 float avg,
+                                                 float max)
+{
+  item->sum -= item->buffer[item->index];
+  item->buffer[item->index] = avg;
+  item->buffer_max[item->index] = max;
+  item->sum += avg;
+
+  if (item->samples < ACCELEROMETER_STATISTICS_BUFFER_SIZE) {
+    item->samples++;
+  }
+  item->index = (item->index + 1) % ACCELEROMETER_STATISTICS_BUFFER_SIZE;
+
+  item->average = item->sum / (float) item->samples;
+
+  // Invalidate statistics computed on-demand.
+  item->variance = NAN;
+  item->maximum = -INFINITY;
+}
+
+void koruza_compute_accelerometer_statistics_item(struct accelerometer_statistics_item *item)
+{
+  item->variance = 0;
+  item->maximum = -INFINITY;
+
+  for (size_t index = 0; index < item->samples; index++) {
+    float value = item->buffer[index];
+    float value_max = item->buffer_max[index];
+    if (value_max > item->maximum) {
+      item->maximum = value_max;
+    }
+    item->variance += (value - item->average) * (value - item->average);
+  }
+
+  item->variance /= (float) item->samples;
+}
+
+void koruza_compute_accelerometer_statistics()
+{
+  for (size_t i = 0; i < 4; i++) {
+    koruza_compute_accelerometer_statistics_item(&status.accelerometer.x[i]);
+    koruza_compute_accelerometer_statistics_item(&status.accelerometer.y[i]);
+    koruza_compute_accelerometer_statistics_item(&status.accelerometer.z[i]);
+  }
 }

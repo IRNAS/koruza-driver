@@ -61,13 +61,38 @@ static int ubus_move_motor(struct ubus_context *ctx, struct ubus_object *obj,
   return result < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+static inline void blobmsg_add_float(struct blob_buf *buffer, const char *name, float value)
+{
+  char tmp[64];
+  snprintf(tmp, sizeof(tmp), "%.4f", value);
+  blobmsg_add_string(buffer, name, tmp);
+}
+
+static void blobmsg_add_accelerometer_statistics_item(struct blob_buf *buffer,
+                                                      const struct accelerometer_statistics_item *items,
+                                                      const char *name)
+{
+  void *d = blobmsg_open_array(&reply_buf, name);
+  for (size_t i = 0; i < 4; i++) {
+    const struct accelerometer_statistics_item *item = &items[i];
+
+    void *c = blobmsg_open_table(&reply_buf, NULL);
+    blobmsg_add_float(buffer, "average", item->average);
+    blobmsg_add_u32(buffer, "count", item->samples);
+    blobmsg_add_float(buffer, "variance", item->variance);
+    blobmsg_add_float(buffer, "maximum", item->maximum);
+    blobmsg_close_table(buffer, c);
+  }
+  blobmsg_close_array(&reply_buf, d);
+}
+
 static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
                            struct ubus_request_data *req, const char *method,
                            struct blob_attr *msg)
 {
   const struct koruza_status *status = koruza_get_status();
   const struct network_status *net_status = network_get_status();
-  void *c, *d;
+  void *c;
 
   blob_buf_init(&reply_buf, 0);
   blobmsg_add_string(&reply_buf, "serial_number", status->serial_number);
@@ -92,44 +117,13 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u32(&reply_buf, "encoder_y", status->motors.encoder_y);
   blobmsg_close_table(&reply_buf, c);
 
+  koruza_compute_accelerometer_statistics();
   c = blobmsg_open_table(&reply_buf, "accelerometer");
   blobmsg_add_u8(&reply_buf, "connected", status->accelerometer.connected);
 
-  d = blobmsg_open_array(&reply_buf, "avg_x");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_x[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
-
-  d = blobmsg_open_array(&reply_buf, "avg_y");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_y[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
-
-  d = blobmsg_open_array(&reply_buf, "avg_z");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.avg_z[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
-
-  d = blobmsg_open_array(&reply_buf, "max_x");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_x[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
-
-  d = blobmsg_open_array(&reply_buf, "max_y");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_y[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
-
-  d = blobmsg_open_array(&reply_buf, "max_z");
-  for (size_t i = 0; i < 4; i++) {
-    blobmsg_add_u32(&reply_buf, NULL, status->accelerometer.max_z[i]);
-  }
-  blobmsg_close_array(&reply_buf, d);
+  blobmsg_add_accelerometer_statistics_item(&reply_buf, status->accelerometer.x, "x");
+  blobmsg_add_accelerometer_statistics_item(&reply_buf, status->accelerometer.y, "y");
+  blobmsg_add_accelerometer_statistics_item(&reply_buf, status->accelerometer.z, "z");
 
   blobmsg_close_table(&reply_buf, c);
 

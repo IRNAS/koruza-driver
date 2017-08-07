@@ -27,6 +27,21 @@
 // Survey coverage (motor coordinate distance from center to edge of survey).
 #define SURVEY_COVERAGE 10000
 
+// Accelerometer statistics window size (in number of samples).
+#define ACCELEROMETER_STATISTICS_BUFFER_SIZE 120
+
+struct accelerometer_statistics_item {
+  float sum;
+  float average;
+  float variance;
+  float maximum;
+
+  float buffer[ACCELEROMETER_STATISTICS_BUFFER_SIZE];
+  float buffer_max[ACCELEROMETER_STATISTICS_BUFFER_SIZE];
+  size_t samples;
+  size_t index;
+};
+
 struct koruza_motor_status {
   uint8_t connected;
 
@@ -63,13 +78,9 @@ struct koruza_sfp_status {
 struct koruza_accelerometer_status {
   uint8_t connected;
 
-  int32_t avg_x[4];
-  int32_t avg_y[4];
-  int32_t avg_z[4];
-
-  int32_t max_x[4];
-  int32_t max_y[4];
-  int32_t max_z[4];
+  struct accelerometer_statistics_item x[4];
+  struct accelerometer_statistics_item y[4];
+  struct accelerometer_statistics_item z[4];
 };
 
 struct koruza_status {
@@ -108,5 +119,7 @@ const struct koruza_status *koruza_get_status();
 
 void koruza_survey_reset();
 const struct koruza_survey *koruza_get_survey();
+
+void koruza_compute_accelerometer_statistics();
 
 #endif
