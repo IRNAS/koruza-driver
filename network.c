@@ -37,6 +37,8 @@
 #define KORUZA_MULTICAST_GROUP "ff02::1:1042"
 // Announce interval.
 #define KORUZA_ANNOUNCE_INTERVAL 1000
+// Address update interval.
+#define KORUZA_NETWORK_UPDATE_INTERVAL 60000
 
 // AVL tree containing all discovered koruza units.
 static struct avl_tree discovered_units;
@@ -46,6 +48,8 @@ static struct uloop_fd ad_socket;
 static struct in6_addr multicast_group;
 // Announce timer.
 static struct uloop_timeout timer_announce;
+// Address update timer.
+static struct uloop_timeout timer_address_update;
 // Currently selected pair.
 static struct network_device *neighbour;
 // Current network state.
@@ -54,6 +58,7 @@ static struct network_status net_status;
 void network_message_received(struct uloop_fd *sock, unsigned int events);
 void network_announce_ourselves(struct uloop_timeout *timer);
 int network_send_message(message_t *message);
+void network_update_local_address(struct uloop_timeout *timer);
 
 int network_init(struct uci_context *uci)
 {
@@ -73,53 +78,24 @@ int network_init(struct uci_context *uci)
   }
 
   net_status.interface = strdup(interface);
+  free(interface);
 
   // Discover interface IPv4 address.
-  struct ifaddrs *ifaddr, *ifa;
-  if (getifaddrs(&ifaddr) == -1) {
-    syslog(LOG_ERR, "Failed to discover interface IP address.");
-    free(interface);
-    return -1;
-  }
-
-  for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == NULL || strcmp(ifa->ifa_name, interface) != 0) {
-      continue;
-    }
-
-    // Get IPv4 address.
-    if (ifa->ifa_addr->sa_family == AF_INET) {
-      char host[NI_MAXHOST];
-      int s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-      if (s != 0) {
-        syslog(LOG_ERR, "Failed to discover interface IP address.");
-        freeifaddrs(ifaddr);
-        free(interface);
-        return -1;
-      }
-
-      net_status.ip_address = strdup(host);
-      break;
-    }
-  }
-
-  freeifaddrs(ifaddr);
+  timer_address_update.cb = network_update_local_address;
+  network_update_local_address(&timer_address_update);
 
   // Prepare multicast socket, listen for updates.
   ad_socket.fd = socket(AF_INET6, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP);
   if (ad_socket.fd < 0) {
     syslog(LOG_ERR, "Failed to setup autodiscovery socket.");
-    free(interface);
     return -1;
   }
 
-  if (setsockopt(ad_socket.fd, SOL_SOCKET, SO_BINDTODEVICE, interface, strlen(interface)) != 0) {
+  if (setsockopt(ad_socket.fd, SOL_SOCKET, SO_BINDTODEVICE, net_status.interface, strlen(net_status.interface)) != 0) {
     syslog(LOG_ERR, "Failed to bind autodiscovery socket to configured interface.");
     close(ad_socket.fd);
-    free(interface);
     return -1;
   }
-  free(interface);
 
   struct sockaddr_in6 address;
   memset(&address, 0, sizeof(address));
@@ -213,4 +189,40 @@ void network_announce_ourselves(struct uloop_timeout *timer)
   if (neighbour == NULL) {
     uloop_timeout_set(timer, KORUZA_ANNOUNCE_INTERVAL);
   }
+}
+
+void network_update_local_address(struct uloop_timeout *timer)
+{
+  struct ifaddrs *ifaddr, *ifa;
+  if (getifaddrs(&ifaddr) == -1) {
+    syslog(LOG_ERR, "Failed to discover interface IP address.");
+  } else {
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+      if (ifa->ifa_addr == NULL || strcmp(ifa->ifa_name, net_status.interface) != 0) {
+        continue;
+      }
+
+      // Get IPv4 address.
+      if (ifa->ifa_addr->sa_family == AF_INET) {
+        char host[NI_MAXHOST];
+        int s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+        if (s != 0) {
+          syslog(LOG_ERR, "Failed to discover interface IP address.");
+          freeifaddrs(ifaddr);
+          break;
+        }
+
+        if (!net_status.ip_address || strcmp(net_status.ip_address, host) != 0) {
+          free(net_status.ip_address);
+          net_status.ip_address = strdup(host);
+        }
+        break;
+      }
+    }
+
+    freeifaddrs(ifaddr);
+  }
+
+  // Reschedule timer.
+  uloop_timeout_set(timer, KORUZA_NETWORK_UPDATE_INTERVAL);
 }
