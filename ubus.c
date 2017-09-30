@@ -148,6 +148,17 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_u8(&reply_buf, "ready", net_status->ready);
   blobmsg_close_table(&reply_buf, c);
 
+  c = blobmsg_open_table(&reply_buf, "alignment");
+  blobmsg_add_u32(&reply_buf, "state", status->alignment.state);
+
+  void *d = blobmsg_open_array(&reply_buf, "variables");
+  for (int i = 0; i < ALIGNMENT_VARIABLE_COUNT; i++) {
+    blobmsg_add_u32(&reply_buf, NULL, status->alignment.variables[i]);
+  }
+  blobmsg_close_array(&reply_buf, d);
+
+  blobmsg_close_table(&reply_buf, c);
+
   ubus_send_reply(ctx, req, reply_buf.head);
 
   return UBUS_STATUS_OK;
@@ -309,6 +320,55 @@ static int ubus_upgrade(struct ubus_context *ctx, struct ubus_object *obj,
   return upgrade_start() < 0 ? UBUS_STATUS_UNKNOWN_ERROR : UBUS_STATUS_OK;
 }
 
+enum {
+  KORUZA_ALIGNMENT_STATE,
+  KORUZA_ALIGNMENT_VARIABLES,
+  __KORUZA_ALIGNMENT_MAX,
+};
+
+static const struct blobmsg_policy koruza_alignment_policy[__KORUZA_ALIGNMENT_MAX] = {
+  [KORUZA_ALIGNMENT_STATE] = { .name = "state", .type = BLOBMSG_TYPE_INT32 },
+  [KORUZA_ALIGNMENT_VARIABLES] = { .name = "variables", .type = BLOBMSG_TYPE_ARRAY },
+};
+
+static int ubus_set_alignment(struct ubus_context *ctx, struct ubus_object *obj,
+                              struct ubus_request_data *req, const char *method,
+                              struct blob_attr *msg)
+{
+  struct blob_attr *tb[__KORUZA_ALIGNMENT_MAX];
+
+  blobmsg_parse(koruza_alignment_policy, __KORUZA_ALIGNMENT_MAX, tb, blob_data(msg), blob_len(msg));
+
+  if (!tb[KORUZA_ALIGNMENT_STATE] || !tb[KORUZA_ALIGNMENT_VARIABLES]) {
+    return UBUS_STATUS_INVALID_ARGUMENT;
+  }
+
+  struct koruza_alignment alignment;
+  struct blob_attr *var;
+  int rem;
+  int index = 0;
+
+  alignment.state = blobmsg_get_u32(tb[KORUZA_ALIGNMENT_STATE]);
+  blobmsg_for_each_attr(var, tb[KORUZA_ALIGNMENT_VARIABLES], rem) {
+    if (index >= ALIGNMENT_VARIABLE_COUNT) {
+      return UBUS_STATUS_INVALID_ARGUMENT;
+    }
+
+    if (blobmsg_type(var) == BLOBMSG_TYPE_INT32) {
+      alignment.variables[index++] = blobmsg_get_u32(var);
+    } else {
+      return UBUS_STATUS_INVALID_ARGUMENT;
+    }
+  }
+
+  if (index != ALIGNMENT_VARIABLE_COUNT) {
+    return UBUS_STATUS_INVALID_ARGUMENT;
+  }
+  koruza_set_alignment(&alignment);
+
+  return UBUS_STATUS_OK;
+}
+
 static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD("move_motor", ubus_move_motor, koruza_motor_policy),
   UBUS_METHOD_NOARG("homing", ubus_homing),
@@ -321,6 +381,7 @@ static const struct ubus_method koruza_methods[] = {
   UBUS_METHOD_NOARG("reset_survey", ubus_reset_survey),
   UBUS_METHOD("set_leds", ubus_set_leds, koruza_leds_policy),
   UBUS_METHOD_NOARG("upgrade", ubus_upgrade),
+  UBUS_METHOD("set_alignment", ubus_set_alignment, koruza_alignment_policy),
 };
 
 static struct ubus_object_type koruza_type =

@@ -832,3 +832,8 @@ void koruza_compute_accelerometer_statistics()
     koruza_compute_accelerometer_statistics_item(&status.accelerometer.z[i]);
   }
 }
+
+void koruza_set_alignment(struct koruza_alignment *alignment)
+{
+  memcpy(&status.alignment, alignment, sizeof(struct koruza_alignment));
+}

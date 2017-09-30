@@ -30,6 +30,9 @@
 // Accelerometer statistics window size (in number of samples).
 #define ACCELEROMETER_STATISTICS_BUFFER_SIZE 120
 
+// Number of extra variables for alignment algorithms.
+#define ALIGNMENT_VARIABLE_COUNT 4
+
 struct accelerometer_statistics_item {
   float sum;
   float average;
@@ -83,6 +86,11 @@ struct koruza_accelerometer_status {
   struct accelerometer_statistics_item z[4];
 };
 
+struct koruza_alignment {
+  uint32_t state;
+  uint32_t variables[ALIGNMENT_VARIABLE_COUNT];
+};
+
 struct koruza_status {
   char *serial_number;
 
@@ -94,6 +102,7 @@ struct koruza_status {
   struct koruza_accelerometer_status accelerometer;
   struct koruza_camera_calibration camera_calibration;
   struct koruza_sfp_status sfp;
+  struct koruza_alignment alignment;
 };
 
 struct survey_data_point {
@@ -121,5 +130,7 @@ void koruza_survey_reset();
 const struct koruza_survey *koruza_get_survey();
 
 void koruza_compute_accelerometer_statistics();
+
+void koruza_set_alignment(struct koruza_alignment *alignment);
 
 #endif
