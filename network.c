@@ -50,11 +50,10 @@ static struct in6_addr multicast_group;
 static struct uloop_timeout timer_announce;
 // Address update timer.
 static struct uloop_timeout timer_address_update;
-// Currently selected pair.
-static struct network_device *neighbour;
 // Current network state.
 static struct network_status net_status;
 
+int network_add_device(struct network_device *cfg);
 void network_message_received(struct uloop_fd *sock, unsigned int events);
 void network_announce_ourselves(struct uloop_timeout *timer);
 int network_send_message(message_t *message);
@@ -62,7 +61,6 @@ void network_update_local_address(struct uloop_timeout *timer);
 
 int network_init(struct uci_context *uci)
 {
-  neighbour = NULL;
   memset(&net_status, 0, sizeof(struct network_status));
 
   // Initialize the discovered units AVL tree.
@@ -137,12 +135,50 @@ int network_init(struct uci_context *uci)
   syslog(LOG_INFO, "Initialized network on interface %s (%s).", net_status.interface, net_status.ip_address);
   net_status.ready = 1;
 
+  // Setup any staticly configured peers.
+  char *peer_ip = uci_get_string(uci, "koruza.@network[0].peer");
+  if (peer_ip) {
+    struct network_device device;
+    device.version = 0;
+    device.id = "STATIC";
+    device.ip_address = peer_ip;
+    if (network_add_device(&device) != 0) {
+      syslog(LOG_WARNING, "Unable to add static network peer.");
+    }
+    free(peer_ip);
+  }
+
   return 0;
 }
 
 const struct network_status *network_get_status()
 {
   return &net_status;
+}
+
+int network_add_device(struct network_device *cfg)
+{
+  struct network_device *device = (struct network_device*) malloc(sizeof(struct network_device));
+  if (!device) {
+    return -1;
+  }
+
+  device->version = cfg->version;
+  device->id = strdup(cfg->id);
+  device->ip_address = strdup(cfg->ip_address);
+  device->avl.key = device->id;
+  if (avl_insert(&discovered_units, &device->avl) != 0) {
+    free(device->id);
+    free(device->ip_address);
+    free(device);
+    return -1;
+  }
+
+  // TODO: Perform current peer selection. We just use the last one for now.
+  net_status.peer = device;
+  syslog(LOG_INFO, "New peer '%s' (id %s) selected.", device->ip_address, device->id);
+
+  return 0;
 }
 
 void network_message_received(struct uloop_fd *sock, unsigned int events)
@@ -185,8 +221,8 @@ void network_announce_ourselves(struct uloop_timeout *timer)
   network_send_message(&msg);
   message_free(&msg);
 
-  // Reschedule timer if no neighbour selected.
-  if (neighbour == NULL) {
+  // Reschedule timer if no peer selected.
+  if (net_status.peer == NULL) {
     uloop_timeout_set(timer, KORUZA_ANNOUNCE_INTERVAL);
   }
 }

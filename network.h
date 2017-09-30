@@ -43,6 +43,9 @@ struct network_status {
   char *interface;
   char *ip_address;
   uint8_t ready;
+
+  // Active peer unit.
+  struct network_device *peer;
 };
 
 int network_init(struct uci_context *uci);

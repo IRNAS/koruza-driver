@@ -146,6 +146,9 @@ static int ubus_get_status(struct ubus_context *ctx, struct ubus_object *obj,
   blobmsg_add_string(&reply_buf, "interface", net_status->interface);
   blobmsg_add_string(&reply_buf, "ip_address", net_status->ip_address);
   blobmsg_add_u8(&reply_buf, "ready", net_status->ready);
+  if (net_status->peer) {
+    blobmsg_add_string(&reply_buf, "peer", net_status->peer->ip_address);
+  }
   blobmsg_close_table(&reply_buf, c);
 
   c = blobmsg_open_table(&reply_buf, "alignment");
