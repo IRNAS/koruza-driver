@@ -42,6 +42,16 @@ char *uci_get_string(struct uci_context *uci, const char *location);
 int uci_get_int(struct uci_context *uci, const char *location, int def);
 
 /**
+ * Returns a resolved UCI path as a float.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ * @param def Default value
+ * @return Target float
+ */
+float uci_get_float(struct uci_context *uci, const char *location, float def);
+
+/**
  * Stores a new string value into UCI configuration.
  *
  * @param uci UCI context
@@ -58,5 +68,13 @@ void uci_set_string(struct uci_context *uci, const char *location, const char *v
  * @param value Value to store
  */
 void uci_set_int(struct uci_context *uci, const char *location, int value);
+
+/**
+ * Deletes a specific UCI pointer.
+ *
+ * @param uci UCI context
+ * @param location UCI location expression (extended syntax)
+ */
+void uci_delete_ptr(struct uci_context *uci, const char *location);
 
 #endif

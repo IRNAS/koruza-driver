@@ -106,6 +106,8 @@ void koruza_timer_status_handler(struct uloop_timeout *timer);
 void koruza_timer_sfp_status_handler(struct uloop_timeout *timer);
 void koruza_timer_wait_reply_handler(struct uloop_timeout *timer);
 void koruza_timer_survey_handler(struct uloop_timeout *timer);
+void koruza_calibration_forward_transform();
+void koruza_calibration_inverse_transform();
 
 void koruza_compute_accelerometer_statistics_item(struct accelerometer_statistics_item *item);
 void koruza_update_accelerometer_statistics_item(struct accelerometer_statistics_item *item,
@@ -147,9 +149,33 @@ int koruza_init(struct uci_context *uci, struct ubus_context *ubus)
     free(webcam_resolution);
   }
 
-  status.camera_calibration.offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x", 0);
-  status.camera_calibration.offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y", 0);
-  status.camera_calibration.distance = uci_get_int(uci, "koruza.@webcam[0].distance", 0);
+  struct koruza_camera_calibration *cal = &status.camera_calibration;
+  cal->zoom_x = uci_get_float(uci, "koruza.@webcam[0].zoom_x", 0.4);
+  cal->zoom_y = uci_get_float(uci, "koruza.@webcam[0].zoom_y", 0.4);
+  cal->zoom_w = uci_get_float(uci, "koruza.@webcam[0].zoom_w", 0.4);
+  cal->zoom_h = uci_get_float(uci, "koruza.@webcam[0].zoom_h", 0.4);
+  cal->distance = uci_get_int(uci, "koruza.@webcam[0].distance", 0);
+
+  // Compute zoomed calibration offsets from global offsets.
+  int offset_x = uci_get_int(uci, "koruza.@webcam[0].offset_x", 0);
+  int offset_y = uci_get_int(uci, "koruza.@webcam[0].offset_y", 0);
+  if (offset_x || offset_y) {
+    // Convert from old (zoomed) offsets.
+    syslog(LOG_INFO, "Converting from old webcam calibration config.");
+    koruza_set_webcam_calibration(offset_x, offset_y);
+
+    // Remove old offsets from configuration.
+    uci_delete_ptr(uci, "koruza.@webcam[0].offset_x");
+    uci_delete_ptr(uci, "koruza.@webcam[0].offset_y");
+    koruza_uci_commit();
+
+    syslog(LOG_INFO, "Conversion done.");
+  } else {
+    // Convert from global coordinates.
+    cal->global_offset_x = uci_get_int(uci, "koruza.@webcam[0].global_offset_x", 0);
+    cal->global_offset_y = uci_get_int(uci, "koruza.@webcam[0].global_offset_y", 0);
+    koruza_calibration_forward_transform();
+  }
 
   status.motors.range_x = uci_get_int(uci, "koruza.@motors[0].range_x", 25000);
   if (status.motors.range_x <= 0) {
@@ -510,13 +536,31 @@ int koruza_uci_commit()
   return 0;
 }
 
+void koruza_calibration_inverse_transform()
+{
+  struct koruza_camera_calibration *cal = &status.camera_calibration;
+  cal->global_offset_x = (uint32_t) (((float) cal->offset_x * cal->zoom_w) + cal->zoom_x * (float) cal->width);
+  cal->global_offset_y = (uint32_t) (((float) cal->offset_y * cal->zoom_h) + cal->zoom_y * (float) cal->height);
+}
+
+void koruza_calibration_forward_transform()
+{
+  struct koruza_camera_calibration *cal = &status.camera_calibration;
+  cal->offset_x = (uint32_t) (((float) cal->global_offset_x - cal->zoom_x * (float) cal->width) / cal->zoom_w);
+  cal->offset_y = (uint32_t) (((float) cal->global_offset_y - cal->zoom_y * (float) cal->height) / cal->zoom_h);
+}
+
 int koruza_set_webcam_calibration(uint32_t offset_x, uint32_t offset_y)
 {
-  status.camera_calibration.offset_x = offset_x;
-  status.camera_calibration.offset_y = offset_y;
+  // Given offsets are in zoomed-in coordinates, so we need to transform them
+  // to global coordinates based on configured zoom levels.
+  struct koruza_camera_calibration *cal = &status.camera_calibration;
+  cal->offset_x = offset_x;
+  cal->offset_y = offset_y;
+  koruza_calibration_inverse_transform();
 
-  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_x", offset_x);
-  uci_set_int(koruza_uci, "koruza.@webcam[0].offset_y", offset_y);
+  uci_set_int(koruza_uci, "koruza.@webcam[0].global_offset_x", cal->global_offset_x);
+  uci_set_int(koruza_uci, "koruza.@webcam[0].global_offset_y", cal->global_offset_y);
 
   return koruza_uci_commit();
 }

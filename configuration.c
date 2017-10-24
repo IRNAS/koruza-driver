@@ -53,6 +53,18 @@ int uci_get_int(struct uci_context *uci, const char *location, int def)
   return result;
 }
 
+float uci_get_float(struct uci_context *uci, const char *location, float def)
+{
+  char *string = uci_get_string(uci, location);
+  if (!string)
+    return def;
+
+  float result = atof(string);
+  free(string);
+
+  return result;
+}
+
 void uci_set_string(struct uci_context *uci, const char *location, const char *value)
 {
   struct uci_ptr ptr;
@@ -74,4 +86,15 @@ void uci_set_int(struct uci_context *uci, const char *location, int value)
   char buffer[16];
   snprintf(buffer, sizeof(buffer), "%d", value);
   uci_set_string(uci, location, buffer);
+}
+
+void uci_delete_ptr(struct uci_context *uci, const char *location)
+{
+  struct uci_ptr ptr;
+  char *loc = strdup(location);
+  if (uci_lookup_ptr(uci, &ptr, loc, true) == UCI_OK) {
+    uci_delete(uci, &ptr);
+  }
+
+  free(loc);
 }
