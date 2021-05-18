@@ -1,5 +1,8 @@
 # koruza-driver
 
+## KORUZA v2 Pro Driver
+This is an old version of the KORUZA Driver. A new version of the KORUZA Driver has been developed and is available at https://github.com/IRNAS/koruza-v2-driver.
+
 ## Build instructions
 
 In order to build and run the unit tests:
